@@ -24,11 +24,11 @@ setup_args = {
     'install_requires': [
         'slackclient==1.3.1',
         'tabulate==0.8.3',
-        'kavalkilu'
+        'kavalkilu @ git+https://github.com/barretobrock/kavalkilu@master#egg=kavalkilu'
     ],
-    'dependency_links': [
-        'https://github.com/barretobrock/kavalkilu.git#egg=kavalkilu'
-    ]
+    # 'dependency_links': [
+    #     'https://github.com/barretobrock/kavalkilu/tarball/master#egg=kavalkilu'
+    # ]
 }
 
 setup(**setup_args)
