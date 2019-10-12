@@ -154,11 +154,30 @@ class SlackTools:
         )
         # Check response for exception
         self._check_for_exception(resp)
-        users = resp['members']
-        target_data = ['id', 'name', 'real_name', 'is_bot']
-        users = [{x: user[x] for x in target_data} for user in self.get_users_info(users)]
+        user_ids = resp['members']
+        users = []
+        for user in self.get_users_info(user_ids):
+            users.append({
+                'id': user['id'],
+                'name': user['name'],
+                'real_name': user['real_name'],
+                'is_bot': user['is_bot'],
+                'display_name': user['profile']['display_name'],
+            })
 
         return [user for user in users if not user['is_bot']] if humans_only else users
+
+    def get_users_info(self, user_list):
+        """Collects info from a list of user ids"""
+        user_info = []
+        for user in user_list:
+            resp = self.bot.api_call(
+                'users.info',
+                user=user
+            )
+            self._check_for_exception(resp)
+            user_info.append(resp['user'])
+        return user_info
 
     def private_channel_message(self, user_id, channel, message):
         """Send a message to a user on the channel"""
@@ -192,18 +211,6 @@ class SlackTools:
         )
         self._check_for_exception(resp)
         return resp['messages']
-
-    def get_users_info(self, user_list):
-        """Collects info from a list of user ids"""
-        user_info = []
-        for user in user_list:
-            resp = self.bot.api_call(
-                'users.info',
-                user=user
-            )
-            self._check_for_exception(resp)
-            user_info.append(resp['user'])
-        return user_info
 
     def send_message(self, channel, message):
         """Sends a message to the specific channel"""
