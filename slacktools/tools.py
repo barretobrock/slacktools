@@ -90,7 +90,8 @@ class SlackTools:
         """Parses an <@{user}> mention and extracts the user id from it"""
         match = re.match(r'^<@(.*)>', txt)
         if match is not None:
-            return match.group(1)
+            # IDs are stored as uppercase. This will help with matching
+            return match.group(1).upper()
         return None
 
     def _init_session(self):
