@@ -24,7 +24,10 @@ setup_args = {
     'install_requires': [
         'slackclient==1.3.1',
         'tabulate==0.8.3',
-        '-e git+git://github.com/barretobrock/kavalkilu.git#egg=kavalkilu'
+        'kavalkilu'
+    ],
+    'dependency_links': [
+        'git+https://github.com/barretobrock/kavalkilu.git#egg=kavalkilu'
     ]
 }
 
