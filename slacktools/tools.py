@@ -6,7 +6,6 @@ import time
 import string
 import requests
 import tabulate
-import traceback
 import slackclient as slack
 from random import randint
 from datetime import datetime as dt
@@ -33,14 +32,16 @@ class SlackTools:
             default: empty
         """
         self.log = log
+        # Enforce lowercase triggers (regex will be indifferent to case anyway
+        triggers = list(map(str.lower, triggers))
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
-
-        self.team = Keys().get_key('okr-name') if team is None else team
+        get_key = Keys().get_key
+        self.team = get_key('okr-name') if team is None else team
         # Grab tokens
-        self.xoxp_token = Keys().get_key('kodubot-usertoken') if xoxp_token is None else xoxp_token
-        self.xoxb_token = Keys().get_key('kodubot-useraccess') if xoxb_token is None else xoxb_token
+        self.xoxp_token = get_key('kodubot-usertoken') if xoxp_token is None else xoxp_token
+        self.xoxb_token = get_key('kodubot-useraccess') if xoxb_token is None else xoxb_token
         self.cookie = cookie
 
         self.user = slack.SlackClient(self.xoxp_token)
@@ -56,8 +57,16 @@ class SlackTools:
         """Parses user and other text from direct mention"""
         matches = re.search(self.MENTION_REGEX, message, re.IGNORECASE)
         if matches is not None:
-            trigger = matches.group(1).lower()
-            message_txt = matches.group(2).lower().strip()
+            if matches.group(1).lower() in self.triggers:
+                # Matched using abbreviated triggers
+                trigger = matches.group(1).lower()
+                self.log.debug('Matched on abbreviated trigger: {}'.format(trigger))
+            else:
+                # Matched using bot id
+                trigger = matches.group(2)
+                self.log.debug('Matched on bot id: {}'.format(trigger))
+            message_txt = matches.group(3).lower().strip()
+            self.log.debug('Message: {}'.format(message_txt))
             return trigger, message_txt
         return None, None
 
