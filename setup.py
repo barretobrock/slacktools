@@ -27,7 +27,7 @@ setup_args = {
         'kavalkilu'
     ],
     'dependency_links': [
-        'git+https://github.com/barretobrock/kavalkilu.git#egg=kavalkilu'
+        'https://github.com/barretobrock/kavalkilu.git#egg=kavalkilu'
     ]
 }
 
