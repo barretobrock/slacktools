@@ -6,26 +6,118 @@ import time
 import string
 import requests
 import tabulate
+import traceback
+import slackclient as slack
 from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
-from kavalkilu import Keys
+from kavalkilu import Keys, GSheetReader
 
 
 class SlackTools:
     """Tools to make working with Slack better"""
 
-    def __init__(self, team=None, xoxp_token=None, xoxb_token=None, cookie=''):
-        slack = __import__('slackclient')
+    def __init__(self, log, bot_name, triggers=None, team=None, xoxp_token=None, xoxb_token=None, cookie='',
+                 RTM_READ_DELAY=1):
+        """
+        :param log: kavalkilu.Log object for logging special events
+        :param bot_name: str, name of the bot
+        :param triggers: list of str, any specific text trigger to kick off the bot's processing of commands
+            default: None. (i.e., will only trigger on @mentions)
+        :param team: str, the Slack workspace name
+            default: OKR
+        :param xoxp_token: str, the user token
+            default: viktor's token
+        :param xoxb_token: str, the bot token
+            default: viktor's token
+        :param cookie: str, cookie used for special processes outside the realm of common API calls
+            e.g., emoji uploads
+            default: empty
+        :param RTM_READ_DELAY: int, seconds to delay next event reading from workspace
+            default: 1
+        """
+        self.log = log
+        self.bot_name = bot_name
+        # Set triggers to @bot_name and any custom text
+        trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
+        self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
+
         self.team = Keys().get_key('okr-name') if team is None else team
-        # Key starting with 'xoxp...'
+        # Grab tokens
         self.xoxp_token = Keys().get_key('kodubot-usertoken') if xoxp_token is None else xoxp_token
         self.xoxb_token = Keys().get_key('kodubot-useraccess') if xoxb_token is None else xoxb_token
         self.cookie = cookie
 
+        self.RTM_READ_DELAY = RTM_READ_DELAY
+
         self.user = slack.SlackClient(self.xoxp_token)
         self.bot = slack.SlackClient(self.xoxb_token)
+        self.bot_id = self.bot.api_call('auth.test')['user_id']
+        self.triggers = [self.bot_id]
+        if triggers is not None:
+            # Add in custom text triggers, if any
+            self.triggers += triggers
         self.session = self._init_session() if cookie != '' else None
+
+    def parse_direct_mention(self, message):
+        """Parses user and other text from direct mention"""
+        matches = re.search(self.MENTION_REGEX, message, re.IGNORECASE)
+        if matches is not None:
+            trigger = matches.group(1).lower()
+            message_txt = matches.group(2).lower().strip()
+            return trigger, message_txt
+        return None, None
+
+    def parse_bot_commands(self, slack_events):
+        """Parses a list of events coming from the Slack RTM API to find bot commands.
+            If a bot command is found, this function returns a tuple of command and channel.
+            If its not found, then this function returns None, None.
+        """
+        for event in slack_events:
+            if event['type'] == 'message' and "subtype" not in event:
+                trigger, message = self.parse_direct_mention(event['text'])
+                if trigger in self.triggers:
+                    return {
+                        'user': event['user'],
+                        'channel': event['channel'],
+                        'message': message.strip()
+                    }
+        return None
+
+    def run_rtm(self, startup_message=None, msg_channel=None):
+        """Initiate real-time messaging"""
+        if self.bot.rtm_connect(with_team_state=False):
+            self.log.debug('{} is running.'.format(self.bot_name))
+            # Refresh bot id just in case
+            self.bot_id = self.bot.api_call('auth.test')['user_id']
+            if all([x is not None for x in [startup_message, msg_channel]]):
+                self.send_message(msg_channel, startup_message)
+            else:
+                self.send_message('notifications', 'Rebooted and ready to party! :tada:')
+            while True:
+                try:
+                    msg_packet = self.parse_bot_commands(self.bot.rtm_read())
+                    if msg_packet is not None:
+                        try:
+                            self.handle_command(**msg_packet)
+                        except Exception as e:
+                            exception_msg = "Exception occurred: \n\t```{}```".format(
+                                traceback.format_tb(e.__traceback__))
+                            self.log.error(traceback.format_tb(e.__traceback__))
+                            self.send_message(msg_packet['channel'], exception_msg)
+                    time.sleep(self.RTM_READ_DELAY)
+                except Exception as e:
+                    self.log.debug('Reconnecting... {}'.format(traceback.format_tb(e.__traceback__)))
+                    self.bot.rtm_connect(with_team_state=False)
+        else:
+            self.log.error('Connection failed.')
+
+    def handle_command(self, channel, message, user):
+        """Handles a bot command if it's known.
+        This function serves as a placeholder until it's replaced by a similar command
+        """
+        print('Missing replacement to handle_command().')
+        pass
 
     def _init_session(self):
         """Initialises a session for use with special API calls not allowed through the python package"""
@@ -383,4 +475,15 @@ class SlackTools:
 
         done_phrase = ''.join(built_phrase)
         return done_phrase
+
+    def _read_in_sheets(self, sheet_key):
+        """Reads in GSheets for Viktor"""
+        gs = GSheetReader(sheet_key)
+        sheets = gs.sheets
+        ws_dict = {}
+        for sheet in sheets:
+            ws_dict.update({
+                sheet.title: gs.get_sheet(sheet.title)
+            })
+        return ws_dict
 
