@@ -86,6 +86,13 @@ class SlackTools:
                     }
         return None
 
+    def parse_tag_from_text(self, txt):
+        """Parses an <@{user}> mention and extracts the user id from it"""
+        match = re.match(r'^<@(.*)>', txt)
+        if match is not None:
+            return match.group(1)
+        return None
+
     def _init_session(self):
         """Initialises a session for use with special API calls not allowed through the python package"""
         base_url = 'https://{}.slack.com'.format(self.team)
