@@ -476,7 +476,7 @@ class SlackTools:
         done_phrase = ''.join(built_phrase)
         return done_phrase
 
-    def _read_in_sheets(self, sheet_key):
+    def read_in_sheets(self, sheet_key):
         """Reads in GSheets for Viktor"""
         gs = GSheetReader(sheet_key)
         sheets = gs.sheets
