@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import os
+import re
+import time
+import string
+import requests
+import tabulate
+from random import randint
+from datetime import datetime as dt
+from datetime import timedelta as tdelta
+from kavalkilu import Keys
+
+
+class SlackTools:
+    """Tools to make working with Slack better"""
+
+    def __init__(self, team=None, xoxp_token=None, xoxb_token=None, cookie=''):
+        slack = __import__('slackclient')
+        self.team = Keys().get_key('okr-name') if team is None else team
+        # Key starting with 'xoxp...'
+        self.xoxp_token = Keys().get_key('kodubot-usertoken') if xoxp_token is None else xoxp_token
+        self.xoxb_token = Keys().get_key('kodubot-useraccess') if xoxb_token is None else xoxb_token
+        self.cookie = cookie
+
+        self.user = slack.SlackClient(self.xoxp_token)
+        self.bot = slack.SlackClient(self.xoxb_token)
+        self.session = self._init_session() if cookie != '' else None
+
+    def _init_session(self):
+        """Initialises a session for use with special API calls not allowed through the python package"""
+        base_url = 'https://{}.slack.com'.format(self.team)
+
+        session = requests.session()
+        session.headers = {'Cookie': self.cookie}
+        session.url_customize = '{}/customize/emoji'.format(base_url)
+        session.url_add = '{}/api/emoji.add'.format(base_url)
+        session.url_list = '{}/api/emoji.adminList'.format(base_url)
+        session.api_token = self.xoxp_token
+        return session
+
+    def _check_for_exception(self, response):
+        """Checks API response for exception info.
+        If error, will return error message and any additional info
+        """
+        if not response['ok']:
+            # Error occurred
+            err_msg = response['error']
+            if err_msg == 'missing_scope':
+                err_msg += '\nneeded: {needed}\n'.format(**response)
+            raise Exception(err_msg)
+
+    def get_channel_members(self, channel, humans_only=False):
+        """Collect members of a particular channel
+        Args:
+            channel: str, the channel to examine
+            humans_only: bool, if True, will only return non-bots in the channel
+        """
+        resp = self.user.api_call(
+            'conversations.members',
+            channel=channel
+        )
+        # Check response for exception
+        self._check_for_exception(resp)
+        users = resp['members']
+        target_data = ['id', 'name', 'real_name', 'is_bot']
+        users = [{x: user[x] for x in target_data} for user in self.get_users_info(users)]
+
+        return [user for user in users if not user['is_bot']] if humans_only else users
+
+    def private_channel_message(self, user_id, channel, message):
+        """Send a message to a user on the channel"""
+        resp = self.user.api_call(
+            'chat.postEphemeral',
+            channel=channel,
+            user=user_id,
+            text=message
+        )
+        # Check response for exception
+        self._check_for_exception(resp)
+
+    def private_message(self, user_id, message):
+        """Send private message to user"""
+        # Grab the DM "channel" associated with the user
+        resp = self.user.api_call(
+            'im.open',
+            user=user_id,
+        )
+        # Check response for exception
+        self._check_for_exception(resp)
+        # DM the user
+        self.send_message(channel=resp['channel']['id'], message=message)
+
+    def get_channel_history(self, channel, limit=1000):
+        """Collect channel history"""
+        resp = self.bot.api_call(
+            'channels.history',
+            channel=channel,
+            count=limit
+        )
+        self._check_for_exception(resp)
+        return resp['messages']
+
+    def get_users_info(self, user_list):
+        """Collects info from a list of user ids"""
+        user_info = []
+        for user in user_list:
+            resp = self.bot.api_call(
+                'users.info',
+                user=user
+            )
+            self._check_for_exception(resp)
+            user_info.append(resp['user'])
+        return user_info
+
+    def send_message(self, channel, message):
+        """Sends a message to the specific channel"""
+        resp = self.user.api_call(
+            'chat.postMessage',
+            channel=channel,
+            text=message
+        )
+        self._check_for_exception(resp)
+
+    def upload_file(self, channel, filepath, filename):
+        """Uploads the selected file to the given channel"""
+        resp = self.bot.api_call(
+            'files.upload',
+            channels=channel,
+            filename=filename,
+            file=open(filepath, 'rb')
+        )
+        self._check_for_exception(resp)
+
+    def df_to_slack_table(self, df):
+        """Takes in a dataframe, outputs a string formatted for Slack"""
+        return tabulate(df, headers='keys', tablefmt='github', showindex='never')
+
+    def _upload_emoji(self, filepath):
+        """Uploads an emoji to the workspace
+        NOTE: The name of the emoji is taken from the filepath
+        """
+        if self.session is None:
+            raise Exception('Cannot initialize session. Session not established due to lack of cookie.')
+        filename = os.path.split(filepath)[1]
+        emoji_name = os.path.splitext(filename)[0]
+        data = {
+            'mode': 'data',
+            'name': emoji_name,
+            'token': self.session.api_token
+        }
+        files = {'image': open(filepath, 'rb')}
+        r = self.session.post(self.session.url_add, data=data, files=files, allow_redirects=False)
+        r.raise_for_status()
+
+        # Slack returns 200 OK even if upload fails, so check for status.
+        response_json = r.json()
+        if not response_json['ok']:
+            print("Error with uploading {}: {}".format(emoji_name, response_json))
+        return response_json['ok']
+
+    def upload_emojis(self, upload_dir, announce=True, wait_s=5):
+        """Uploads any .jpg .png .gif files in a given directory,
+            Announces uploads to channel, if announce=True
+
+        Methods
+             - Scan in files from directory
+             - clean emoji name from file path
+             - build dict: key = emoji name, value = filepath
+        """
+        existing_emojis = [k for k, v in self.get_emojis().items()]
+
+        emoji_dict = {}
+        for file in os.listdir(upload_dir):
+            file_split = os.path.splitext(file)
+            if file_split[1] in ['.png', '.jpg', '.gif']:
+                filepath = os.path.join(upload_dir, file)
+                emoji_name = file_split[0]
+                if emoji_name not in existing_emojis:
+                    emoji_dict[emoji_name] = filepath
+
+        successfully_uploaded = []
+        for k, v in emoji_dict.items():
+            if k in successfully_uploaded:
+                continue
+            successful = self._upload_emoji(v)
+            if successful:
+                successfully_uploaded.append(k)
+            # Wait
+            print(':{}: successful - {:.2%} done'.format(k, len(successfully_uploaded) / len(emoji_dict)))
+            time.sleep(wait_s)
+
+        if announce:
+            # Report the emojis captured to the channel
+            # 30 emojis per line, 5 lines per post
+            out_str = '\n'
+            cnt = 0
+            for item in successfully_uploaded:
+                out_str += ':{}:'.format(item)
+                cnt += 1
+                if cnt % 30 == 0:
+                    out_str += '\n'
+                if cnt == 150:
+                    self.send_message('emoji_suggestions', out_str)
+                    out_str = '\n'
+                    cnt = 0
+            if cnt > 0:
+                self.send_message('emoji_suggestions', out_str)
+            return out_str
+        return None
+
+    def download_emojis(self, emoji_dict, download_dir):
+        """Downloads a dict of emojis
+        NOTE: key = emoji name, value = url or data
+        """
+        for k, v in emoji_dict.items():
+            if v[:4] == 'data':
+                data = v
+            elif v[:4] == 'http':
+                r = requests.get(v)
+                data = r.content
+            else:
+                continue
+            # Write pic to file
+            fname = '{}{}'.format(k, os.path.splitext(v)[1])
+            fpath = os.path.join(download_dir, fname)
+            write = 'wb' if isinstance(data, bytes) else 'w'
+            with open(fpath, write) as f:
+                f.write(data)
+
+    def _exact_match_emojis(self, emoji_dict, exact_match_list):
+        """Matches emojis exactly"""
+        matches = {}
+        for k, v in emoji_dict.items():
+            if k in exact_match_list:
+                matches[k] = v
+        return matches
+
+    def _fuzzy_match_emojis(self, emoji_dict, fuzzy_match):
+        """Fuzzy matches emojis"""
+        matches = {}
+        pattern = re.compile(fuzzy_match, re.IGNORECASE)
+        for k, v in emoji_dict.items():
+            if pattern.match(k) is not None:
+                matches[k] = v
+        return matches
+
+    def match_emojis(self, exact_match_list=None, fuzzy_match=None):
+        """Matches emojis in a workspace either by passing in an exact list or fuzzy-match (regex) list"""
+        emoji_dict = self.get_emojis()
+
+        matches = {}
+        # Exact matches
+        if exact_match_list is not None:
+            exact_matches = self._exact_match_emojis(emoji_dict, exact_match_list)
+            matches.update(exact_matches)
+        # Fuzzy matches
+        if fuzzy_match is not None:
+            fuzzy_matches = self._fuzzy_match_emojis(emoji_dict, fuzzy_match)
+            matches.update(fuzzy_matches)
+        return matches
+
+    def get_emojis(self):
+        """Returns a dict of emojis for a given workspace"""
+        resp = self.user.api_call('emoji.list')
+        self._check_for_exception(resp)
+        return resp['emoji']
+
+    def delete_message(self, message_dict):
+        """Deletes a given message
+        NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
+            use search_messages_by_date() to determine the messages to delete
+        """
+        resp = self.user.api_call(
+            'chat.delete',
+            channel=message_dict['channel']['id'],
+            ts=message_dict['ts']
+        )
+        self._check_for_exception(resp)
+
+    def search_messages_by_date(self, channel, from_date, date_format='%Y-%m-%d %H:%M', max_results=100):
+        """Search for messages in a channel after a certain date
+
+        Args:
+            channel: str, the channel (e.g., "#channel")
+            from_date: str, the date from which to begin collecting channels
+            date_format: str, the format of the date entered
+            max_results: int, the maximum number of results per page to return
+
+        Returns: list of dict, channels matching the query
+        """
+        from_date = dt.strptime(from_date, date_format)
+        # using the 'after' filter here, so take it back one day
+        slack_date = from_date - tdelta(days=1)
+
+        for attempt in range(3):
+            resp = self.user.api_call(
+                'search.messages',
+                query='in:{} after:{:%F}'.format(channel, slack_date),
+                count=max_results
+            )
+            try:
+                self._check_for_exception(resp)
+                break
+            except Exception as e:
+                print('Call failed. Error: {}'.format(e))
+                time.sleep(2)
+
+        if 'messages' in resp.keys():
+            msgs = resp['messages']['matches']
+            filtered_msgs = []
+            for msg in msgs:
+                # Append the message as long as it's timestamp is later or equal to the time entered
+                ts = dt.fromtimestamp(int(round(float(msg['ts']), 0)))
+                if ts >= from_date:
+                    filtered_msgs.append(msg)
+            return filtered_msgs
+
+        return None
+
+    def _build_emoji_letter_dict(self):
+        """Sets up use of replacing words with slack emojis"""
+        a2z = string.ascii_lowercase
+        letter_grp = [
+            'regional_indicator_',
+            'letter-',
+            'scrabble-'
+        ]
+
+        grp = [['{}{}'.format(y, x) for x in a2z] for y in letter_grp]
+
+        letter_dict = {}
+
+        for i, ltr in enumerate(list(a2z)):
+            ltr_list = []
+            for g in grp:
+                ltr_list.append(g[i])
+
+            letter_dict[ltr] = ltr_list
+
+        # Additional, irregular entries
+        addl = {
+            'a': ['amazon', 'a', 'slayer_a', 'a_'],
+            'b': ['b'],
+            'e': ['slayer_e'],
+            'l': ['slayer_l'],
+            'm': ['m'],
+            'o': ['o'],
+            'r': ['slayer_r'],
+            's': ['s', 'slayer_s'],
+            'x': ['x'],
+            'y': ['slayer_y'],
+            'z': ['zabbix'],
+            '.': ['dotdotdot-intensifies', 'period'],
+            '!': ['exclamation', 'heavy_heart_exclamation_mark_ornament', 'grey_exclamation'],
+            '?': ['question', 'grey_question', 'questionman', 'question_block'],
+            '"': ['airquotes-start', 'airquotes-end'],
+            "'": ['airquotes-start', 'airquotes-end'],
+        }
+
+        for k, v in addl.items():
+            if k in letter_dict.keys():
+                letter_dict[k] = letter_dict[k] + v
+            else:
+                letter_dict[k] = v
+        return letter_dict
+
+    def build_phrase(self, phrase):
+        """Build your awesome phrase"""
+
+        letter_dict = self._build_emoji_letter_dict()
+        built_phrase = []
+        for l in list(phrase):
+            # Lookup letter
+            if l in letter_dict.keys():
+                vals = letter_dict[l]
+                rand_l = vals[randint(0, len(vals) - 1)]
+                built_phrase.append(':{}:'.format(rand_l))
+            elif l == ' ':
+                built_phrase.append(':blank:')
+            else:
+                built_phrase.append(l)
+
+        done_phrase = ''.join(built_phrase)
+        return done_phrase
+
