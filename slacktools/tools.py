@@ -33,7 +33,8 @@ class SlackTools:
         """
         self.log = log
         # Enforce lowercase triggers (regex will be indifferent to case anyway
-        triggers = list(map(str.lower, triggers))
+        if triggers is not None:
+            triggers = list(map(str.lower, triggers))
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
@@ -189,7 +190,7 @@ class SlackTools:
 
     def send_message(self, channel, message):
         """Sends a message to the specific channel"""
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'chat.postMessage',
             channel=channel,
             text=message
