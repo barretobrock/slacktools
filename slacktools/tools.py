@@ -156,7 +156,7 @@ class SlackTools:
 
     def private_channel_message(self, user_id, channel, message):
         """Send a message to a user on the channel"""
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'chat.postEphemeral',
             channel=channel,
             user=user_id,
@@ -168,7 +168,7 @@ class SlackTools:
     def private_message(self, user_id, message):
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'im.open',
             user=user_id,
         )
