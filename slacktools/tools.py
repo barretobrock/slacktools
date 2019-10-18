@@ -4,6 +4,7 @@ import os
 import re
 import time
 import string
+import signal
 import requests
 import tabulate
 import slackclient as slack
@@ -11,6 +12,17 @@ from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
 from kavalkilu import Keys, GSheetReader
+
+
+class GracefulKiller:
+    kill_now = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, signum, frame):
+        self.kill_now = True
 
 
 class SlackTools:
