@@ -79,9 +79,10 @@ class SlackTools:
                 trigger = matches.group(2)
                 self.log.debug('Matched on bot id: {}'.format(trigger))
             message_txt = matches.group(3).lower().strip()
+            raw_message = matches.group(3).strip()
             self.log.debug('Message: {}'.format(message_txt))
-            return trigger, message_txt
-        return None, None
+            return trigger, message_txt, raw_message
+        return None, None, None
 
     def parse_bot_commands(self, slack_events):
         """Parses a list of events coming from the Slack RTM API to find bot commands.
@@ -90,12 +91,13 @@ class SlackTools:
         """
         for event in slack_events:
             if event['type'] == 'message' and "subtype" not in event:
-                trigger, message = self.parse_direct_mention(event['text'])
+                trigger, message, raw_message = self.parse_direct_mention(event['text'])
                 if trigger in self.triggers:
                     return {
                         'user': event['user'],
                         'channel': event['channel'],
-                        'message': message.strip()
+                        'message': message.strip(),
+                        'raw_message': raw_message.strip()
                     }
         return None
 
