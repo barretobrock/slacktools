@@ -6,7 +6,7 @@ import time
 import string
 import signal
 import requests
-import tabulate
+from tabulate import tabulate
 import slackclient as slack
 from random import randint
 from datetime import datetime as dt
