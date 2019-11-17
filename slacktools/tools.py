@@ -44,7 +44,7 @@ class SlackTools:
             e.g., emoji uploads
             default: empty
         """
-        self.log = logging.getLogger(log_name).getChild('slacktools')
+        self.log = Log(log_name, child_name='slacktools')
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
