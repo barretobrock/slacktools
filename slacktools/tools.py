@@ -4,6 +4,7 @@ import os
 import re
 import time
 import string
+import logging
 import signal
 import requests
 from tabulate import tabulate
@@ -28,9 +29,9 @@ class GracefulKiller:
 class SlackTools:
     """Tools to make working with Slack better"""
 
-    def __init__(self, log, triggers=None, team=None, xoxp_token=None, xoxb_token=None, cookie=''):
+    def __init__(self, log_name, triggers=None, team=None, xoxp_token=None, xoxb_token=None, cookie=''):
         """
-        :param log: kavalkilu.Log object for logging special events
+        :param log_name: str, log name of kavalkilu.Log object for logging special events
         :param triggers: list of str, any specific text trigger to kick off the bot's processing of commands
             default: None. (i.e., will only trigger on @mentions)
         :param team: str, the Slack workspace name
@@ -43,7 +44,7 @@ class SlackTools:
             e.g., emoji uploads
             default: empty
         """
-        self.log = log
+        self.log = logging.getLogger(log_name)
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
