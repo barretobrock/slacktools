@@ -12,7 +12,7 @@ import slackclient as slack
 from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
-from kavalkilu import Keys, GSheetReader
+from kavalkilu import Keys, GSheetReader, Log
 
 
 class GracefulKiller:
@@ -44,7 +44,7 @@ class SlackTools:
             e.g., emoji uploads
             default: empty
         """
-        self.log = logging.getLogger(log_name)
+        self.log = Log('{}.slacktool'.format(log_name), log_filename_prefix=log_name)
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
