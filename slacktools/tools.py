@@ -49,7 +49,6 @@ class SlackTools:
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
 
-        raise ValueError("this thing happened")
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
