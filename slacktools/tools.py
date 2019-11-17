@@ -44,10 +44,12 @@ class SlackTools:
             e.g., emoji uploads
             default: empty
         """
-        self.log = Log('{}.slacktool'.format(log_name), log_filename_prefix=log_name)
+        self.log = logging.getLogger(log_name).getChild('slacktools')
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
+
+        raise ValueError("this thing happened")
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
