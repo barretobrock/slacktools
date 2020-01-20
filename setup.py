@@ -24,6 +24,7 @@ setup_args = {
     'install_requires': [
         'slackclient==1.3.1',
         'tabulate==0.8.3',
+        'kavalkilu'
     ],
     'dependency_links': [
         'https://github.com/barretobrock/kavalkilu/tarball/master#egg=kavalkilu'
