@@ -4,7 +4,6 @@ import os
 import re
 import time
 import string
-import logging
 import signal
 import requests
 from tabulate import tabulate
