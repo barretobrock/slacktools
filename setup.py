@@ -28,7 +28,6 @@ setup_args = {
         'slackclient==1.3.1',
         'tabulate==0.8.3',
         'kavalkilu @ https://github.com/barretobrock/kavalkilu/tarball/master#egg=kavalkilu'
-        # 'kavalkilu @ https://github.com/barretobrock/kavalkilu/archive/master.zip#egg=kavalkilu'
     ],
 }
 
