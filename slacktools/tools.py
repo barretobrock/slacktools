@@ -139,7 +139,7 @@ class SlackTools:
             channel: str, the channel to examine
             humans_only: bool, if True, will only return non-bots in the channel
         """
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'conversations.members',
             channel=channel
         )
@@ -195,7 +195,7 @@ class SlackTools:
 
     def get_channel_history(self, channel, limit=1000):
         """Collect channel history"""
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'channels.history',
             channel=channel,
             count=limit
@@ -352,7 +352,7 @@ class SlackTools:
 
     def get_emojis(self):
         """Returns a dict of emojis for a given workspace"""
-        resp = self.user.api_call('emoji.list')
+        resp = self.bot.api_call('emoji.list')
         self._check_for_exception(resp)
         return resp['emoji']
 
@@ -361,7 +361,7 @@ class SlackTools:
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
         """
-        resp = self.user.api_call(
+        resp = self.bot.api_call(
             'chat.delete',
             channel=message_dict['channel']['id'],
             ts=message_dict['ts']
