@@ -7,6 +7,7 @@ This is really something I built for personal use. There are credential collecti
 ### Required scopes
 #### Bot
  - channels:read
+ - channels:history
  - chat:write
  - groups:read
  - im:read

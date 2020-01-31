@@ -7,38 +7,24 @@ import string
 import signal
 import requests
 from tabulate import tabulate
-import slackclient as slack
+from slack import WebClient
 from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
-from kavalkilu import Keys, GSheetReader, Log
-
-
-class GracefulKiller:
-    kill_now = False
-
-    def __init__(self):
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
-
-    def exit_gracefully(self, signum, frame):
-        self.kill_now = True
+from kavalkilu import GSheetReader, Log
 
 
 class SlackTools:
     """Tools to make working with Slack better"""
 
-    def __init__(self, log_name, triggers=None, team=None, xoxp_token=None, xoxb_token=None, cookie=''):
+    def __init__(self, log_name, triggers, team, xoxp_token, xoxb_token, cookie=''):
         """
         :param log_name: str, log name of kavalkilu.Log object for logging special events
         :param triggers: list of str, any specific text trigger to kick off the bot's processing of commands
             default: None. (i.e., will only trigger on @mentions)
         :param team: str, the Slack workspace name
-            default: OKR
         :param xoxp_token: str, the user token
-            default: viktor's token
         :param xoxb_token: str, the bot token
-            default: viktor's token
         :param cookie: str, cookie used for special processes outside the realm of common API calls
             e.g., emoji uploads
             default: empty
@@ -51,16 +37,16 @@ class SlackTools:
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
-        get_key = Keys().get_key
-        self.team = get_key('okr-name') if team is None else team
+        self.team = team
         # Grab tokens
-        self.xoxp_token = get_key('kodubot-usertoken') if xoxp_token is None else xoxp_token
-        self.xoxb_token = get_key('kodubot-useraccess') if xoxb_token is None else xoxb_token
+        self.xoxp_token = xoxp_token
+        self.xoxb_token = xoxb_token
         self.cookie = cookie
 
-        self.user = slack.SlackClient(self.xoxp_token)
-        self.bot = slack.SlackClient(self.xoxb_token)
-        self.bot_id = self.bot.api_call('auth.test')['user_id']
+        self.user = WebClient(xoxp_token)
+        self.bot = WebClient(xoxb_token)
+        self.bot_id = self.bot.auth_test()
+        # self.bot_id = self.bot.api_call('auth.test')['user_id']
         self.triggers = [self.bot_id]
         if triggers is not None:
             # Add in custom text triggers, if any
@@ -102,7 +88,8 @@ class SlackTools:
                     }
         return None
 
-    def parse_tag_from_text(self, txt):
+    @staticmethod
+    def parse_tag_from_text(txt):
         """Parses an <@{user}> mention and extracts the user id from it"""
         match = re.match(r'^<@(.*)>', txt)
         if match is not None:
@@ -122,7 +109,8 @@ class SlackTools:
         session.api_token = self.xoxp_token
         return session
 
-    def _check_for_exception(self, response):
+    @staticmethod
+    def _check_for_exception(response):
         """Checks API response for exception info.
         If error, will return error message and any additional info
         """
@@ -139,10 +127,8 @@ class SlackTools:
             channel: str, the channel to examine
             humans_only: bool, if True, will only return non-bots in the channel
         """
-        resp = self.bot.api_call(
-            'conversations.members',
-            channel=channel
-        )
+        resp = self.bot.conversations_members(channel=channel)
+
         # Check response for exception
         self._check_for_exception(resp)
         user_ids = resp['members']
@@ -162,32 +148,21 @@ class SlackTools:
         """Collects info from a list of user ids"""
         user_info = []
         for user in user_list:
-            resp = self.bot.api_call(
-                'users.info',
-                user=user
-            )
+            resp = self.bot.users_info(user=user)
             self._check_for_exception(resp)
             user_info.append(resp['user'])
         return user_info
 
     def private_channel_message(self, user_id, channel, message):
         """Send a message to a user on the channel"""
-        resp = self.bot.api_call(
-            'chat.postEphemeral',
-            channel=channel,
-            user=user_id,
-            text=message
-        )
+        resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message)
         # Check response for exception
         self._check_for_exception(resp)
 
     def private_message(self, user_id, message):
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
-        resp = self.bot.api_call(
-            'im.open',
-            user=user_id,
-        )
+        resp = self.bot.im_open(user=user_id)
         # Check response for exception
         self._check_for_exception(resp)
         # DM the user
@@ -195,34 +170,22 @@ class SlackTools:
 
     def get_channel_history(self, channel, limit=1000):
         """Collect channel history"""
-        resp = self.bot.api_call(
-            'channels.history',
-            channel=channel,
-            count=limit
-        )
+        resp = self.bot.channels_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
 
     def send_message(self, channel, message):
         """Sends a message to the specific channel"""
-        resp = self.bot.api_call(
-            'chat.postMessage',
-            channel=channel,
-            text=message
-        )
+        resp = self.bot.chat_postMessage(channel=channel, text=message)
         self._check_for_exception(resp)
 
     def upload_file(self, channel, filepath, filename):
         """Uploads the selected file to the given channel"""
-        resp = self.bot.api_call(
-            'files.upload',
-            channels=channel,
-            filename=filename,
-            file=open(filepath, 'rb')
-        )
+        resp = self.bot.files_upload(file=open(filepath, 'rb'), channels=channel, filename=filename)
         self._check_for_exception(resp)
 
-    def df_to_slack_table(self, df):
+    @staticmethod
+    def df_to_slack_table(df):
         """Takes in a dataframe, outputs a string formatted for Slack"""
         return tabulate(df, headers='keys', tablefmt='github', showindex='never')
 
@@ -299,7 +262,8 @@ class SlackTools:
             return out_str
         return None
 
-    def download_emojis(self, emoji_dict, download_dir):
+    @staticmethod
+    def download_emojis(emoji_dict, download_dir):
         """Downloads a dict of emojis
         NOTE: key = emoji name, value = url or data
         """
@@ -318,7 +282,8 @@ class SlackTools:
             with open(fpath, write) as f:
                 f.write(data)
 
-    def _exact_match_emojis(self, emoji_dict, exact_match_list):
+    @staticmethod
+    def _exact_match_emojis(emoji_dict, exact_match_list):
         """Matches emojis exactly"""
         matches = {}
         for k, v in emoji_dict.items():
@@ -326,7 +291,8 @@ class SlackTools:
                 matches[k] = v
         return matches
 
-    def _fuzzy_match_emojis(self, emoji_dict, fuzzy_match):
+    @staticmethod
+    def _fuzzy_match_emojis(emoji_dict, fuzzy_match):
         """Fuzzy matches emojis"""
         matches = {}
         pattern = re.compile(fuzzy_match, re.IGNORECASE)
@@ -352,7 +318,7 @@ class SlackTools:
 
     def get_emojis(self):
         """Returns a dict of emojis for a given workspace"""
-        resp = self.bot.api_call('emoji.list')
+        resp = self.bot.emoji_list()
         self._check_for_exception(resp)
         return resp['emoji']
 
@@ -361,11 +327,7 @@ class SlackTools:
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
         """
-        resp = self.bot.api_call(
-            'chat.delete',
-            channel=message_dict['channel']['id'],
-            ts=message_dict['ts']
-        )
+        resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
         self._check_for_exception(resp)
 
     def search_messages_by_date(self, channel, from_date, date_format='%Y-%m-%d %H:%M', max_results=100):
