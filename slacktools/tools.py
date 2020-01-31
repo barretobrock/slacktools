@@ -447,3 +447,8 @@ class SlackTools:
             })
         return ws_dict
 
+    def write_sheet(self, sheet_key, sheet_name, df):
+        gs = GSheetReader(sheet_key)
+        gs.write_df_to_sheet(sheet_key, sheet_name, df)
+
+
