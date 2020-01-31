@@ -3,7 +3,7 @@
 """
 Slack Tools: A common library for working with Slack
 """
-from .tools import SlackTools, GracefulKiller
+from .tools import SlackTools
 
 
 from ._version import get_versions
