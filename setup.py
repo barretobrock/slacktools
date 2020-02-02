@@ -21,13 +21,11 @@ setup_args = {
     'author': 'Barret Obrock',
     'author_email': 'barret@barretobrock.ee',
     'packages': find_packages(exclude=['tests']),
-    'dependency_links': [
-        'https://github.com/barretobrock/kavalkilu/tarball/master#egg=kavalkilu'
-    ],
     'install_requires': [
         'slackclient==2.5.0',
         'tabulate==0.8.3',
-        # 'kavalkilu @ https://github.com/barretobrock/kavalkilu/tarball/master#egg=kavalkilu'
+        'Flask==1.1.1',
+        'pyee==7.0.1'
     ],
 }
 
