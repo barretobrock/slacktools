@@ -4,6 +4,7 @@
 Slack Tools: A common library for working with Slack
 """
 from .tools import SlackTools, GSheetReader
+from .events_fork import SlackEventAdapter
 
 
 from ._version import get_versions
