@@ -3,6 +3,17 @@
 
 # SETUP
 # --------------
+# ARGS
+REPO=slacktools
+INSTALL_SPEED=${1:-full}    # Full, won't skip dependencies on pip install, fast will
+
+NODEPS_FLAG=''
+if [[ "${INSTALL_SPEED}" == "fast" ]];
+then
+    echo "Not pip installing dependencies"
+    NODEPS_FLAG="--no-deps"
+fi
+
 BLUE="\e[34m"
 RESET="\e[0m"
 announce_section () {
@@ -14,7 +25,7 @@ announce_section () {
 
 # DIRECTORY SETUP
 # CD to the location of the package and pull from master
-ST_DIR=${HOME}/extras/slacktools
+ST_DIR=${HOME}/extras/${REPO}
 
 # GIT PULL
 # --------------
@@ -27,8 +38,6 @@ announce_section "Pulling update from git repo"
 # Then update the python package locally
 announce_section "Beginning update of python package"
 # TODO check if installed, then upgrade if so
-pip3 install git+https://github.com/barretobrock/slacktools.git#egg=slacktools --upgrade
-#sudo pip3 install --target=/usr/local/lib/python3.6/dist-packages git+https://github.com/barretobrock/slacktools.git#egg=slacktools --upgrade
-
+python3 -m pip install git+https://github.com/barretobrock/${REPO}.git#egg=${REPO} --upgrade --user ${NODEPS_FLAG}
 
 announce_section "Process completed"
