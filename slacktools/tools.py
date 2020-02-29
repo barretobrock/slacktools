@@ -165,6 +165,8 @@ class SlackTools:
                 'real_name': user['real_name'],
                 'is_bot': user['is_bot'],
                 'display_name': user['profile']['display_name'],
+                'status_emoji': user['profile']['status_emoji'],
+                'status_text': user['profile']['status_text'],
             })
 
         return [user for user in users if not user['is_bot']] if humans_only else users
