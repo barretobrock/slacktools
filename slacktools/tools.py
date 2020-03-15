@@ -197,8 +197,7 @@ class SlackTools:
 
     def get_channel_history(self, channel, limit=1000):
         """Collect channel history"""
-        resp = self.bot.channels_history(channel=channel, limit=limit,
-                                         types='public_channel,private_channel')
+        resp = self.bot.conversations_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
 
