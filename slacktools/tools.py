@@ -171,12 +171,21 @@ class SlackTools:
 
         return [user for user in users if not user['is_bot']] if humans_only else users
 
-    def get_users_info(self, user_list):
+    def get_users_info(self, user_list, throw_exception=True):
         """Collects info from a list of user ids"""
         user_info = []
         for user in user_list:
             resp = self.bot.users_info(user=user)
-            self._check_for_exception(resp)
+            if throw_exception:
+                self._check_for_exception(resp)
+            elif 'user' not in resp.data.keys():
+                # Unsuccessful at finding user. Add in a placeholder.
+                resp = {
+                    'id': user,
+                    'name': 'Unknown User',
+                    'real_name': 'unknown_user'
+                }
+
             user_info.append(resp['user'])
         return user_info
 
