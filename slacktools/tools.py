@@ -197,7 +197,8 @@ class SlackTools:
 
     def get_channel_history(self, channel, limit=1000):
         """Collect channel history"""
-        resp = self.bot.channels_history(channel=channel, limit=limit)
+        resp = self.bot.channels_history(channel=channel, limit=limit,
+                                         types=['public_channel', 'private_channel'])
         self._check_for_exception(resp)
         return resp['messages']
 
@@ -239,7 +240,7 @@ class SlackTools:
             print("Error with uploading {}: {}".format(emoji_name, response_json))
         return response_json['ok']
 
-    def upload_emojis(self, upload_dir, announce=True, wait_s=5):
+    def upload_emojis(self, upload_dir, wait_s=5, announce_channel=None):
         """Uploads any .jpg .png .gif files in a given directory,
             Announces uploads to channel, if announce=True
 
@@ -270,7 +271,7 @@ class SlackTools:
             print(':{}: successful - {:.2%} done'.format(k, len(successfully_uploaded) / len(emoji_dict)))
             time.sleep(wait_s)
 
-        if announce:
+        if announce_channel is not None:
             # Report the emojis captured to the channel
             # 30 emojis per line, 5 lines per post
             out_str = '\n'
@@ -281,11 +282,11 @@ class SlackTools:
                 if cnt % 30 == 0:
                     out_str += '\n'
                 if cnt == 150:
-                    self.send_message('emoji_suggestions', out_str)
+                    self.send_message(announce_channel, out_str)
                     out_str = '\n'
                     cnt = 0
             if cnt > 0:
-                self.send_message('emoji_suggestions', out_str)
+                self.send_message(announce_channel, out_str)
             return out_str
         return None
 
@@ -372,10 +373,10 @@ class SlackTools:
         # using the 'after' filter here, so take it back one day
         slack_date = from_date - tdelta(days=1)
 
+        resp = None
         for attempt in range(3):
-            resp = self.user.api_call(
-                'search.messages',
-                query='in:{} after:{:%F}'.format(channel, slack_date),
+            resp = self.user.search_messages(
+                query=f'in:{channel} after:{slack_date:%F}',
                 count=max_results
             )
             try:
@@ -384,6 +385,9 @@ class SlackTools:
             except Exception as e:
                 print('Call failed. Error: {}'.format(e))
                 time.sleep(2)
+
+        if resp is None:
+            return None
 
         if 'messages' in resp.keys():
             msgs = resp['messages']['matches']
@@ -397,7 +401,8 @@ class SlackTools:
 
         return None
 
-    def _build_emoji_letter_dict(self):
+    @staticmethod
+    def _build_emoji_letter_dict():
         """Sets up use of replacing words with slack emojis"""
         a2z = string.ascii_lowercase
         letter_grp = [
@@ -463,7 +468,8 @@ class SlackTools:
         done_phrase = ''.join(built_phrase)
         return done_phrase
 
-    def read_in_sheets(self, sheet_key):
+    @staticmethod
+    def read_in_sheets(sheet_key):
         """Reads in GSheets for Viktor"""
         gs = GSheetReader(sheet_key)
         sheets = gs.sheets
@@ -474,7 +480,8 @@ class SlackTools:
             })
         return ws_dict
 
-    def write_sheet(self, sheet_key, sheet_name, df):
+    @staticmethod
+    def write_sheet(sheet_key, sheet_name, df):
         gs = GSheetReader(sheet_key)
         gs.write_df_to_sheet(sheet_key, sheet_name, df)
 
