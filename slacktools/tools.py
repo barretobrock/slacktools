@@ -9,6 +9,7 @@ import pygsheets
 import requests
 from tabulate import tabulate
 from slack import WebClient
+from slack.errors import SlackApiError
 from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
@@ -175,18 +176,20 @@ class SlackTools:
         """Collects info from a list of user ids"""
         user_info = []
         for user in user_list:
-            resp = self.bot.users_info(user=user)
-            if throw_exception:
-                self._check_for_exception(resp)
-            elif 'user' not in resp.data.keys():
-                # Unsuccessful at finding user. Add in a placeholder.
-                resp = {
-                    'id': user,
-                    'name': 'Unknown User',
-                    'real_name': 'unknown_user'
-                }
-
-            user_info.append(resp['user'])
+            try:
+                resp = self.bot.users_info(user=user)
+            except SlackApiError:
+                if throw_exception:
+                    self._check_for_exception(resp)
+                if resp['error'] == 'user_not_found':
+                    # Unsuccessful at finding user. Add in a placeholder.
+                    resp = {
+                        'id': user,
+                        'name': 'Unknown User',
+                        'real_name': 'unknown_user'
+                    }
+            if 'user' in resp.data.keys():
+                user_info.append(resp['user'])
         return user_info
 
     def private_channel_message(self, user_id, channel, message):
