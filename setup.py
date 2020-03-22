@@ -25,7 +25,9 @@ setup_args = {
         'slackclient==2.5.0',
         'tabulate==0.8.3',
         'Flask==1.1.1',
-        'pyee==7.0.1'
+        'pyee==7.0.1',
+        'pygsheets==2.0.2',
+        'requests==2.10.0'
     ],
 }
 
