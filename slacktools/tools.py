@@ -147,7 +147,7 @@ class SlackTools:
                 err_msg += '\nneeded: {needed}\n'.format(**response)
             raise Exception(err_msg)
 
-    def get_channel_members(self, channel, humans_only=False):
+    def get_channel_members(self, channel, humans_only=False) -> list:
         """Collect members of a particular channel
         Args:
             channel: str, the channel to examine
@@ -172,7 +172,7 @@ class SlackTools:
 
         return [user for user in users if not user['is_bot']] if humans_only else users
 
-    def get_users_info(self, user_list, throw_exception=True):
+    def get_users_info(self, user_list, throw_exception=True) -> list:
         """Collects info from a list of user ids"""
         user_info = []
         for user in user_list:
@@ -192,20 +192,20 @@ class SlackTools:
                 user_info.append(resp['user'])
         return user_info
 
-    def private_channel_message(self, user_id, channel, message):
+    def private_channel_message(self, user_id, channel, message, **kwargs):
         """Send a message to a user on the channel"""
-        resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message)
+        resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
         self._check_for_exception(resp)
 
-    def private_message(self, user_id, message):
+    def private_message(self, user_id, message, **kwargs):
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
         resp = self.bot.im_open(user=user_id)
         # Check response for exception
         self._check_for_exception(resp)
         # DM the user
-        self.send_message(channel=resp['channel']['id'], message=message)
+        self.send_message(channel=resp['channel']['id'], message=message, **kwargs)
 
     def get_channel_history(self, channel, limit=1000):
         """Collect channel history"""
@@ -213,9 +213,9 @@ class SlackTools:
         self._check_for_exception(resp)
         return resp['messages']
 
-    def send_message(self, channel, message):
+    def send_message(self, channel, message, **kwargs):
         """Sends a message to the specific channel"""
-        resp = self.bot.chat_postMessage(channel=channel, text=message)
+        resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
         self._check_for_exception(resp)
 
     def upload_file(self, channel, filepath, filename):
