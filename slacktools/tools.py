@@ -40,6 +40,95 @@ class GSheetReader:
         sheet.set_dataframe(df, (1, 1))
 
 
+class BlockKitBuilder:
+    """Helper class to build out Block Kit things"""
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def make_block_section(obj, join_str='\n'):
+        """Returns a Block Kit dictionary containing the markdown-supported text
+        Args:
+            obj: str or list, the block of text to include in the section
+            join_str: str, the string to join a list of strings with
+        """
+        if isinstance(obj, list):
+            txt = join_str.join(obj)
+        elif isinstance(obj, str):
+            txt = obj
+        else:
+            txt = str(obj)
+
+        return {
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': txt
+            }
+        }
+
+    @staticmethod
+    def make_block_divider():
+        """Returns a dict that renders a divider in Slack's Block Kit"""
+        return {
+            'type': 'divider'
+        }
+
+    @staticmethod
+    def make_block_multiselect(desc, btn_txt, option_list):
+        """Returns a dict that renders a multi select form in Slack's Block Kit
+        Args:
+            desc: str, the markdown-supported text that describes what's being selected
+            btn_txt: str, text that goes inside the button element
+            option_list: list of dict, options to include
+                expected keys:
+                    txt: option text
+                    value: the value to apply to this option (returned in API)
+        """
+
+        options = []
+        for x in option_list:
+            options.append({
+                'text': {
+                    'type': 'plain_text',
+                    'text': x['txt'],
+                    'emoji': True
+                },
+                'value': x['value']
+            })
+
+        return {
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': desc
+            },
+            'accessory': {
+                'type': 'multi_static_select',
+                'placeholder': {
+                    'type': 'plain_text',
+                    'text': btn_txt,
+                    'emoji': True
+                },
+                'options': options
+            }
+        }
+
+    @staticmethod
+    def make_block_button(btn_txt: str, value: str):
+        """Returns a dict that renders a button in Slack's Block Kit"""
+        return {
+            'type': 'button',
+            'text': {
+                'type': 'plain_text',
+                'text': btn_txt,
+                'emoji': True
+            },
+            'value': value
+        }
+
+
 class SlackTools:
     """Tools to make working with Slack better"""
 
@@ -146,88 +235,6 @@ class SlackTools:
             if err_msg == 'missing_scope':
                 err_msg += '\nneeded: {needed}\n'.format(**response)
             raise Exception(err_msg)
-
-    @staticmethod
-    def make_block_section(obj, join_str='\n'):
-        """Returns a Block Kit dictionary containing the markdown-supported text
-        Args:
-            obj: str or list, the block of text to include in the section
-            join_str: str, the string to join a list of strings with
-        """
-        if isinstance(obj, list):
-            txt = join_str.join(obj)
-        elif isinstance(obj, str):
-            txt = obj
-        else:
-            txt = str(obj)
-
-        return {
-            'type': 'section',
-            'text': {
-                'type': 'mrkdwn',
-                'text': txt
-            }
-        }
-
-    @staticmethod
-    def make_block_divider():
-        """Returns a dict that renders a divider in Slack's Block Kit"""
-        return {
-            'type': 'divider'
-        }
-
-    @staticmethod
-    def make_block_multiselect(desc, btn_txt, option_list):
-        """Returns a dict that renders a multi select form in Slack's Block Kit
-        Args:
-            desc: str, the markdown-supported text that describes what's being selected
-            btn_txt: str, text that goes inside the button element
-            option_dict: list of dict, options to include
-                expected keys:
-                    txt: option text
-                    value: the value to apply to this option (returned in API)
-        """
-
-        options = []
-        for x in option_list:
-            options.append({
-                'text': {
-                    'type': 'plain_text',
-                    'text': x['txt'],
-                    'emoji': True
-                },
-                'value': x['value']
-            })
-
-        return {
-            'type': 'section',
-            'text': {
-                'type': 'mrkdwn',
-                'text': desc
-            },
-            'accessory': {
-                'type': 'multi_static_select',
-                'placeholder': {
-                    'type': 'plain_text',
-                    'text': btn_txt,
-                    'emoji': True
-                },
-                'options': options
-            }
-        }
-
-    @staticmethod
-    def make_block_button(btn_txt: str, value: str):
-        """Returns a dict that renders a button in Slack's Block Kit"""
-        return {
-            'type': 'button',
-            'text': {
-                'type': 'plain_text',
-                'text': btn_txt,
-                'emoji': True
-            },
-            'value': value
-        }
 
     def get_channel_members(self, channel, humans_only=False) -> list:
         """Collect members of a particular channel
