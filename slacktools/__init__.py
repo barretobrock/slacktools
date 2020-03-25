@@ -3,7 +3,7 @@
 """
 Slack Tools: A common library for working with Slack
 """
-from .tools import SlackTools, GSheetReader
+from .tools import SlackTools, GSheetReader, BlockKitBuilder
 from .events_fork import SlackEventAdapter
 
 
