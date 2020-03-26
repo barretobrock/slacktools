@@ -128,6 +128,20 @@ class BlockKitBuilder:
             'value': value
         }
 
+    def make_button_group(self, button_list: list):
+        """Takes in a list of dicts containing button text & value,
+        returns a dictionary that renders the entire set of buttons together
+
+        Args:
+            button_list: list of dict, expected keys:
+                txt: the button text
+                value: the value attached to the button
+        """
+        return {
+            'type': 'actions',
+            'elements': [self.make_block_button(x['txt'], x['value']) for x in button_list]
+        }
+
 
 class SlackTools:
     """Tools to make working with Slack better"""
