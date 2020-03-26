@@ -76,7 +76,7 @@ class BlockKitBuilder:
         }
 
     @staticmethod
-    def make_block_multiselect(desc, btn_txt, option_list):
+    def make_block_multiselect(desc, btn_txt, option_list, max_selected_items: int = None) -> dict:
         """Returns a dict that renders a multi select form in Slack's Block Kit
         Args:
             desc: str, the markdown-supported text that describes what's being selected
@@ -85,6 +85,8 @@ class BlockKitBuilder:
                 expected keys:
                     txt: option text
                     value: the value to apply to this option (returned in API)
+            max_selected_items: int, if included, will establish a limit to the max number
+                of selected items in the multiselect
         """
 
         options = []
@@ -98,7 +100,7 @@ class BlockKitBuilder:
                 'value': x['value']
             })
 
-        return {
+        multiselect_dict = {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
@@ -115,8 +117,12 @@ class BlockKitBuilder:
             }
         }
 
+        if max_selected_items is not None:
+            multiselect_dict['accessory']['max_selected_items'] = max_selected_items
+        return multiselect_dict
+
     @staticmethod
-    def make_block_button(btn_txt: str, value: str):
+    def make_block_button(btn_txt: str, value: str) -> dict:
         """Returns a dict that renders a button in Slack's Block Kit"""
         return {
             'type': 'button',
