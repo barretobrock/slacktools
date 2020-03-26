@@ -27,7 +27,7 @@ setup_args = {
         'Flask==1.1.1',
         'pyee==7.0.1',
         'pygsheets==2.0.2',
-        'requests==2.10.0'
+        'requests>=2.20.0'
     ],
 }
 
