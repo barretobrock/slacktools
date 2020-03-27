@@ -134,6 +134,23 @@ class BlockKitBuilder:
             'value': value
         }
 
+    @staticmethod
+    def make_context_section(txt_list):
+        """Takes in a list of text chunks and returns a dictionary
+        that renders a context section in Block Kit
+        Args:
+            txt_list: list of str, tex tot include in the context block
+        """
+        return {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": txt_list
+                }
+            ]
+        }
+
     def make_button_group(self, button_list: list):
         """Takes in a list of dicts containing button text & value,
         returns a dictionary that renders the entire set of buttons together
