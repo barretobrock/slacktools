@@ -141,14 +141,10 @@ class BlockKitBuilder:
         Args:
             txt_list: list of str, tex tot include in the context block
         """
+
         return {
             "type": "context",
-            "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": txt_list
-                }
-            ]
+            "elements": [{'type': 'mrkdwn', 'text': x} for x in txt_list]
         }
 
     def make_button_group(self, button_list: list):
