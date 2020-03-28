@@ -7,6 +7,7 @@ import json
 import string
 import pygsheets
 import requests
+from typing import Union, List
 from tabulate import tabulate
 from slack import WebClient
 from slack.errors import SlackApiError
@@ -47,11 +48,12 @@ class BlockKitBuilder:
         pass
 
     @staticmethod
-    def make_block_section(obj, join_str='\n'):
+    def make_block_section(obj: Union[str, list], join_str: str = '\n', accessory: dict = None) -> dict:
         """Returns a Block Kit dictionary containing the markdown-supported text
         Args:
             obj: str or list, the block of text to include in the section
             join_str: str, the string to join a list of strings with
+            accessory: dict, any acceptable acceccory to add to the section (e.g., button)
         """
         if isinstance(obj, list):
             txt = join_str.join(obj)
@@ -60,7 +62,7 @@ class BlockKitBuilder:
         else:
             txt = str(obj)
 
-        return {
+        section = {
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
@@ -68,15 +70,21 @@ class BlockKitBuilder:
             }
         }
 
+        if accessory is not None:
+            section['accessory'] = accessory
+
+        return section
+
     @staticmethod
-    def make_block_divider():
+    def make_block_divider() -> dict:
         """Returns a dict that renders a divider in Slack's Block Kit"""
         return {
             'type': 'divider'
         }
 
     @staticmethod
-    def make_block_multiselect(desc, btn_txt, option_list, max_selected_items: int = None) -> dict:
+    def make_block_multiselect(desc: str, btn_txt: str, option_list: List[dict],
+                               max_selected_items: int = None) -> dict:
         """Returns a dict that renders a multi select form in Slack's Block Kit
         Args:
             desc: str, the markdown-supported text that describes what's being selected
@@ -135,19 +143,23 @@ class BlockKitBuilder:
         }
 
     @staticmethod
-    def make_context_section(txt_list):
+    def make_context_section(txt_obj: Union[str, List[str]]) -> dict:
         """Takes in a list of text chunks and returns a dictionary
         that renders a context section in Block Kit
         Args:
-            txt_list: list of str, tex tot include in the context block
+            txt_obj: list of str or str, tex to include in the context block
         """
+        if isinstance(txt_obj, str):
+            element_list = [{'type': 'mrkdwn', 'text': txt_obj}]
+        else:
+            element_list = [{'type': 'mrkdwn', 'text': x} for x in txt_obj]
 
         return {
             "type": "context",
-            "elements": [{'type': 'mrkdwn', 'text': x} for x in txt_list]
+            "elements": element_list
         }
 
-    def make_button_group(self, button_list: list):
+    def make_button_group(self, button_list: List[dict]) -> dict:
         """Takes in a list of dicts containing button text & value,
         returns a dictionary that renders the entire set of buttons together
 
