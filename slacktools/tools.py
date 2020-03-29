@@ -76,6 +76,19 @@ class BlockKitBuilder:
         return section
 
     @staticmethod
+    def make_image_accessory(url: str, alt_txt: str) -> dict:
+        """Builds a dict for describing an accessory image, generally used with make_block_section
+        Args:
+            url: str, the url that points to the image
+            alt_txt: str, alt text to the image. this will be displayed on hover / for any screen readers
+        """
+        return {
+            'type': 'image',
+            'image_url': url,
+            'alt_text': alt_txt
+        }
+
+    @staticmethod
     def make_block_divider() -> dict:
         """Returns a dict that renders a divider in Slack's Block Kit"""
         return {
