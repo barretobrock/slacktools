@@ -188,78 +188,30 @@ class BlockKitBuilder:
 
 
 class SlackTools:
-    """Tools to make working with Slack better"""
+    """Tools to make working with Slack API better"""
 
-    def __init__(self, log_name, triggers, team, xoxp_token, xoxb_token, cookie=''):
+    def __init__(self, team: str, xoxp_token: str, xoxb_token: str, cookie: str = ''):
         """
-        :param log_name: str, log name of kavalkilu.Log object for logging special events
-        :param triggers: list of str, any specific text trigger to kick off the bot's processing of commands
-            default: None. (i.e., will only trigger on @mentions)
-        :param team: str, the Slack workspace name
-        :param xoxp_token: str, the user token
-        :param xoxb_token: str, the bot token
-        :param cookie: str, cookie used for special processes outside the realm of common API calls
-            e.g., emoji uploads
-            default: empty
+        Args:
+            team: str, the Slack workspace name
+            xoxp_token: str, the user token
+            xoxb_token: str, the bot token
+            cookie: str, cookie used for special processes outside
+                the realm of common API calls e.g., emoji uploads
+                default: empty
         """
-        # self.log = Log(log_name, child_name='slacktools')
-        # Enforce lowercase triggers (regex will be indifferent to case anyway
-        if triggers is not None:
-            triggers = list(map(str.lower, triggers))
-
-        # Set triggers to @bot and any custom text
-        trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
-        self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
         self.team = team
         # Grab tokens
         self.xoxp_token = xoxp_token
         self.xoxb_token = xoxb_token
         self.cookie = cookie
+        self.bkb = BlockKitBuilder()
 
         self.user = WebClient(xoxp_token)
         self.bot = WebClient(xoxb_token)
+        # Test API calls to the bot
         self.bot_id = self.bot.auth_test()
-        # self.bot_id = self.bot.api_call('auth.test')['user_id']
-        self.triggers = [self.bot_id]
-        if triggers is not None:
-            # Add in custom text triggers, if any
-            self.triggers += triggers
         self.session = self._init_session() if cookie != '' else None
-
-    def parse_direct_mention(self, message):
-        """Parses user and other text from direct mention"""
-        matches = re.search(self.MENTION_REGEX, message, re.IGNORECASE)
-        if matches is not None:
-            if matches.group(1).lower() in self.triggers:
-                # Matched using abbreviated triggers
-                trigger = matches.group(1).lower()
-                # self.log.debug('Matched on abbreviated trigger: {}'.format(trigger))
-            else:
-                # Matched using bot id
-                trigger = matches.group(2)
-                # self.log.debug('Matched on bot id: {}'.format(trigger))
-            message_txt = matches.group(3).lower().strip()
-            raw_message = matches.group(3).strip()
-            # self.log.debug('Message: {}'.format(message_txt))
-            return trigger, message_txt, raw_message
-        return None, None, None
-
-    def parse_bot_commands(self, slack_events):
-        """Parses a list of events coming from the Slack RTM API to find bot commands.
-            If a bot command is found, this function returns a tuple of command and channel.
-            If its not found, then this function returns None, None.
-        """
-        for event in slack_events:
-            if event['type'] == 'message' and "subtype" not in event:
-                trigger, message, raw_message = self.parse_direct_mention(event['text'])
-                if trigger in self.triggers:
-                    return {
-                        'user': event['user'],
-                        'channel': event['channel'],
-                        'message': message.strip(),
-                        'raw_message': raw_message.strip()
-                    }
-        return None
 
     @staticmethod
     def parse_tag_from_text(txt):
