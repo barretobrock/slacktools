@@ -7,9 +7,12 @@ import json
 import string
 import pygsheets
 import requests
-from typing import Union, List
+import pandas as pd
+from typing import Union, List, Optional
 from tabulate import tabulate
+from asyncio import Future
 from slack import WebClient
+from slack.web.slack_response import SlackResponse
 from slack.errors import SlackApiError
 from random import randint
 from datetime import datetime as dt
@@ -18,14 +21,14 @@ from datetime import timedelta as tdelta
 
 class GSheetReader:
     """A class to help with reading in Google Sheets"""
-    def __init__(self, sheet_key):
+    def __init__(self, sheet_key: str):
         with open(os.path.join(os.path.expanduser('~'), *['keys', 'GSHEET_READER'])) as f:
             gsheets_creds = json.loads(f.read())
         os.environ['GDRIVE_API_CREDENTIALS'] = json.dumps(gsheets_creds)
         self.gc = pygsheets.authorize(service_account_env_var='GDRIVE_API_CREDENTIALS')
         self.sheets = self.gc.open_by_key(sheet_key).worksheets()
 
-    def get_sheet(self, sheet_name):
+    def get_sheet(self, sheet_name: str) -> pd.DataFrame:
         """Retrieves a sheet as a pandas dataframe"""
         for sheet in self.sheets:
             if sheet.title == sheet_name:
@@ -33,7 +36,7 @@ class GSheetReader:
         raise ValueError(f'The sheet name "{sheet_name}" was not found '
                          f'in the list of available sheets: ({",".join([x.title for x in self.sheets])})')
 
-    def write_df_to_sheet(self, sheet_key, sheet_name, df):
+    def write_df_to_sheet(self, sheet_key: str, sheet_name: str, df: pd.DataFrame):
         """Write df to sheet"""
         wb = self.gc.open_by_key(sheet_key)
         sheet = wb.worksheet_by_title(sheet_name)
@@ -214,7 +217,7 @@ class SlackTools:
         self.session = self._init_session() if cookie != '' else None
 
     @staticmethod
-    def parse_tag_from_text(txt):
+    def parse_tag_from_text(txt: str) -> Optional[str]:
         """Parses an <@{user}> mention and extracts the user id from it"""
         match = re.match(r'^<@(.*)>', txt)
         if match is not None:
@@ -222,7 +225,7 @@ class SlackTools:
             return match.group(1).upper()
         return None
 
-    def _init_session(self):
+    def _init_session(self) -> requests.Session:
         """Initialises a session for use with special API calls not allowed through the python package"""
         base_url = 'https://{}.slack.com'.format(self.team)
 
@@ -235,18 +238,21 @@ class SlackTools:
         return session
 
     @staticmethod
-    def _check_for_exception(response):
+    def _check_for_exception(response: Union[Future, SlackResponse]):
         """Checks API response for exception info.
         If error, will return error message and any additional info
         """
-        if not response['ok']:
-            # Error occurred
-            err_msg = response['error']
-            if err_msg == 'missing_scope':
-                err_msg += '\nneeded: {needed}\n'.format(**response)
-            raise Exception(err_msg)
+        if response is None:
+            raise ValueError('Response object was of NoneType.')
+        else:
+            if not response['ok']:
+                # Error occurred
+                err_msg = response['error']
+                if err_msg == 'missing_scope':
+                    err_msg += '\nneeded: {needed}\n'.format(**response.data)
+                raise Exception(err_msg)
 
-    def get_channel_members(self, channel, humans_only=False) -> list:
+    def get_channel_members(self, channel: str, humans_only: bool = False) -> list:
         """Collect members of a particular channel
         Args:
             channel: str, the channel to examine
@@ -271,10 +277,11 @@ class SlackTools:
 
         return [user for user in users if not user['is_bot']] if humans_only else users
 
-    def get_users_info(self, user_list, throw_exception=True) -> list:
+    def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
         """Collects info from a list of user ids"""
         user_info = []
         for user in user_list:
+            resp = None
             try:
                 resp = self.bot.users_info(user=user)
             except SlackApiError:
@@ -283,21 +290,24 @@ class SlackTools:
                 if resp['error'] == 'user_not_found':
                     # Unsuccessful at finding user. Add in a placeholder.
                     resp = {
-                        'id': user,
-                        'name': 'Unknown User',
-                        'real_name': 'unknown_user'
+                        'user': {
+                            'id': user,
+                            'real_name': 'Unknown User',
+                            'name': 'unknown_user',
+                            'display_name': 'unknown_user',
+                        }
                     }
             if 'user' in resp.data.keys():
                 user_info.append(resp['user'])
         return user_info
 
-    def private_channel_message(self, user_id, channel, message, **kwargs):
+    def private_channel_message(self, user_id: str, channel: str, message: str, **kwargs):
         """Send a message to a user on the channel"""
         resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
         self._check_for_exception(resp)
 
-    def private_message(self, user_id, message, **kwargs):
+    def private_message(self, user_id: str, message: str, **kwargs):
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
         resp = self.bot.im_open(user=user_id)
@@ -306,28 +316,28 @@ class SlackTools:
         # DM the user
         self.send_message(channel=resp['channel']['id'], message=message, **kwargs)
 
-    def get_channel_history(self, channel, limit=1000):
+    def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
         """Collect channel history"""
         resp = self.bot.conversations_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
 
-    def send_message(self, channel, message, **kwargs):
+    def send_message(self, channel: str, message: str, **kwargs):
         """Sends a message to the specific channel"""
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
         self._check_for_exception(resp)
 
-    def upload_file(self, channel, filepath, filename):
+    def upload_file(self, channel: str, filepath: str, filename: str):
         """Uploads the selected file to the given channel"""
         resp = self.bot.files_upload(file=open(filepath, 'rb'), channels=channel, filename=filename)
         self._check_for_exception(resp)
 
     @staticmethod
-    def df_to_slack_table(df):
+    def df_to_slack_table(df: pd.DataFrame) -> str:
         """Takes in a dataframe, outputs a string formatted for Slack"""
         return tabulate(df, headers='keys', tablefmt='github', showindex='never')
 
-    def _upload_emoji(self, filepath):
+    def _upload_emoji(self, filepath: str) -> bool:
         """Uploads an emoji to the workspace
         NOTE: The name of the emoji is taken from the filepath
         """
@@ -347,10 +357,10 @@ class SlackTools:
         # Slack returns 200 OK even if upload fails, so check for status.
         response_json = r.json()
         if not response_json['ok']:
-            print("Error with uploading {}: {}".format(emoji_name, response_json))
+            print(f"Error with uploading {emoji_name}: {response_json}")
         return response_json['ok']
 
-    def upload_emojis(self, upload_dir, wait_s=5, announce_channel=None):
+    def upload_emojis(self, upload_dir: str, wait_s: int = 5, announce_channel: str = None) -> Optional[str]:
         """Uploads any .jpg .png .gif files in a given directory,
             Announces uploads to channel, if announce=True
 
@@ -401,7 +411,7 @@ class SlackTools:
         return None
 
     @staticmethod
-    def download_emojis(emoji_dict, download_dir):
+    def download_emojis(emoji_dict: dict, download_dir: str):
         """Downloads a dict of emojis
         NOTE: key = emoji name, value = url or data
         """
@@ -421,7 +431,7 @@ class SlackTools:
                 f.write(data)
 
     @staticmethod
-    def _exact_match_emojis(emoji_dict, exact_match_list):
+    def _exact_match_emojis(emoji_dict: dict, exact_match_list: List[str]) -> dict:
         """Matches emojis exactly"""
         matches = {}
         for k, v in emoji_dict.items():
@@ -430,7 +440,7 @@ class SlackTools:
         return matches
 
     @staticmethod
-    def _fuzzy_match_emojis(emoji_dict, fuzzy_match):
+    def _fuzzy_match_emojis(emoji_dict: dict, fuzzy_match: str) -> dict:
         """Fuzzy matches emojis"""
         matches = {}
         pattern = re.compile(fuzzy_match, re.IGNORECASE)
@@ -439,7 +449,7 @@ class SlackTools:
                 matches[k] = v
         return matches
 
-    def match_emojis(self, exact_match_list=None, fuzzy_match=None):
+    def match_emojis(self, exact_match_list: List[str] = None, fuzzy_match: str = None) -> dict:
         """Matches emojis in a workspace either by passing in an exact list or fuzzy-match (regex) list"""
         emoji_dict = self.get_emojis()
 
@@ -454,13 +464,13 @@ class SlackTools:
             matches.update(fuzzy_matches)
         return matches
 
-    def get_emojis(self):
+    def get_emojis(self) -> dict:
         """Returns a dict of emojis for a given workspace"""
         resp = self.bot.emoji_list()
         self._check_for_exception(resp)
         return resp['emoji']
 
-    def delete_message(self, message_dict):
+    def delete_message(self, message_dict: dict):
         """Deletes a given message
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
@@ -468,7 +478,8 @@ class SlackTools:
         resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
         self._check_for_exception(resp)
 
-    def search_messages_by_date(self, channel, from_date, date_format='%Y-%m-%d %H:%M', max_results=100):
+    def search_messages_by_date(self, channel: str, from_date: str, date_format: str = '%Y-%m-%d %H:%M',
+                                max_results: int = 100) -> Optional[List[dict]]:
         """Search for messages in a channel after a certain date
 
         Args:
@@ -499,7 +510,7 @@ class SlackTools:
         if resp is None:
             return None
 
-        if 'messages' in resp.keys():
+        if 'messages' in resp.data.keys():
             msgs = resp['messages']['matches']
             filtered_msgs = []
             for msg in msgs:
@@ -512,7 +523,7 @@ class SlackTools:
         return None
 
     @staticmethod
-    def _build_emoji_letter_dict():
+    def _build_emoji_letter_dict() -> dict:
         """Sets up use of replacing words with slack emojis"""
         a2z = string.ascii_lowercase
         letter_grp = [
@@ -559,7 +570,7 @@ class SlackTools:
                 letter_dict[k] = v
         return letter_dict
 
-    def build_phrase(self, phrase):
+    def build_phrase(self, phrase: str) -> str:
         """Build your awesome phrase"""
 
         letter_dict = self._build_emoji_letter_dict()
@@ -579,7 +590,7 @@ class SlackTools:
         return done_phrase
 
     @staticmethod
-    def read_in_sheets(sheet_key):
+    def read_in_sheets(sheet_key: str) -> dict:
         """Reads in GSheets for Viktor"""
         gs = GSheetReader(sheet_key)
         sheets = gs.sheets
@@ -591,8 +602,6 @@ class SlackTools:
         return ws_dict
 
     @staticmethod
-    def write_sheet(sheet_key, sheet_name, df):
+    def write_sheet(sheet_key: str, sheet_name: str, df: pd.DataFrame):
         gs = GSheetReader(sheet_key)
         gs.write_df_to_sheet(sheet_key, sheet_name, df)
-
-

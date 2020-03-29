@@ -3,7 +3,7 @@
 import re
 from datetime import datetime
 from dateutil.relativedelta import relativedelta as reldelta
-from typing import List, Tuple, Optional, Callable
+from typing import List, Union, Tuple, Optional, Callable
 from .tools import BlockKitBuilder, SlackTools
 
 
@@ -133,7 +133,7 @@ class SlackBotBase(SlackTools):
         return None
 
     @staticmethod
-    def _flag_parser(message):
+    def parse_flags_from_command(message: str) -> dict:
         """Takes in a message string and parses out flags in the string and the values following them
         Args:
             message: str, the command message containing the flags
@@ -142,13 +142,18 @@ class SlackBotBase(SlackTools):
             dict, flags parsed out into keys
 
         Example:
-            >>> msg = 'process this command -u this that other --p 1 2 3 4 5'
-            >>> _flag_parser(msg)
-            >>> {'cmd': 'process this command', 'u': ['this', 'that', 'other'], 'p': ['1', '2', '3', '4', '5']}
+            >>> msg = 'process this command -l -u this that other --p 1 2 3 4 5'
+            >>> #parse_flags_from_command(msg)
+            >>> {
+            >>>     'cmd': 'process this command',
+            >>>     'l': '',
+            >>>     'u': 'this that other',
+            >>>     'p': '1 2 3 4 5'
+            >>> }
         """
         msg_split = message.split(' ')
-        cmd_dict = {'cmd': re.split(r'\-+\w+', message)[0].strip()}
-        flag_regex = re.compile(r'^\-+(\w+)')
+        cmd_dict = {'cmd': re.split(r'-+\w+', message)[0].strip()}
+        flag_regex = re.compile(r'^-+(\w+)')
         for i, part in enumerate(msg_split):
             if flag_regex.match(part) is not None:
                 flag = flag_regex.match(part).group(1)
@@ -158,15 +163,32 @@ class SlackBotBase(SlackTools):
                     if flag_regex.match(val) is not None:
                         break
                     vals.append(val)
-                cmd_dict[flag] = vals
+                cmd_dict[flag] = ' '.join(vals)
         return cmd_dict
 
-    def handle_command(self, event_dict):
+    def get_flag_from_command(self, cmd: str, flags: Union[str, List[str]], default: str) -> str:
+        """Reads in the command, if no flag, will return the default
+        Args:
+            cmd: str, the command message to parse
+            flags: str or list of str, the flag(s) to search for
+            default: str, the default value to set if no flag is found
+        """
+
+        # Parse the command into a dictionary of the command parts (command, flags)
+        parsed_cmd = self.parse_flags_from_command(cmd)
+        if isinstance(flags, str):
+            # Put this into a list to unify our examination methods
+            flags = [flags]
+
+        for flag in flags:
+            if flag in parsed_cmd.keys():
+                return parsed_cmd[flag]
+        return default
+
+    def handle_command(self, event_dict: dict):
         """Handles a bot command if it's known"""
         response = None
         message = event_dict['message']
-        raw_message = event_dict['raw_message']
-        user = event_dict['user']
         channel = event_dict['channel']
 
         is_matched = False
@@ -244,7 +266,7 @@ class SlackBotBase(SlackTools):
         datediff = reldelta(datetime.now(), st_dt)
         return self._human_readable(datediff)
 
-    def get_prev_msg_in_channel(self, channel, timestamp):
+    def get_prev_msg_in_channel(self, channel: str, timestamp: str) -> Optional[str]:
         """Gets the previous message from the channel"""
         resp = self.bot.conversations_history(
             channel=channel,
@@ -257,7 +279,7 @@ class SlackBotBase(SlackTools):
             return msgs[0]['text']
         return None
 
-    def message_main_channel(self, message=None, blocks=None):
+    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
             self.send_message(self.main_channel, message)
