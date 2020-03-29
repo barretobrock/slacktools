@@ -3,20 +3,21 @@
 import re
 from datetime import datetime
 from dateutil.relativedelta import relativedelta as reldelta
-from typing import List, Union, Tuple, Optional, Callable
+from typing import List, Tuple, Optional, Callable
 from .tools import BlockKitBuilder, SlackTools
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, log_name: str, triggers: List[str], team: str, xoxp_token: str, xoxb_token: str,
-                 commands: dict, cmd_categories: List[str]):
+    def __init__(self, log_name: str, triggers: List[str], team: str, main_channel: str, xoxp_token: str,
+                 xoxb_token: str, commands: dict, cmd_categories: List[str]):
         """
         Args:
             log_name: str, log name of kavalkilu.Log object for logging special events
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
             team: str, the Slack workspace name
+            main_channel: str, the default channel to communicate messages to
             xoxp_token: str, the user token
             xoxb_token: str, the bot token
             commands: dict, all the commands the bot recognizes (to be built into help text)
@@ -41,6 +42,7 @@ class SlackBotBase(SlackTools):
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
+        self.main_channel = main_channel
 
         self.bkb = BlockKitBuilder()
         self.commands = commands
@@ -254,3 +256,12 @@ class SlackBotBase(SlackTools):
             msgs = resp['messages']
             return msgs[0]['text']
         return None
+
+    def message_main_channel(self, message=None, blocks=None):
+        """Wrapper to send message to whole channel"""
+        if message is not None:
+            self.send_message(self.main_channel, message)
+        elif blocks is not None:
+            self.send_message(self.main_channel, message='', blocks=blocks)
+        else:
+            raise ValueError('No data passed for message.')
