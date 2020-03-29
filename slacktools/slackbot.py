@@ -166,7 +166,7 @@ class SlackBotBase(SlackTools):
                 cmd_dict[flag] = ' '.join(vals)
         return cmd_dict
 
-    def get_flag_from_command(self, cmd: str, flags: Union[str, List[str]], default: str) -> str:
+    def get_flag_from_command(self, cmd: str, flags: Union[str, List[str]], default: Optional[str] = None) -> str:
         """Reads in the command, if no flag, will return the default
         Args:
             cmd: str, the command message to parse
