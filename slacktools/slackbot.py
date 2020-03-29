@@ -222,13 +222,13 @@ class SlackBotBase(SlackTools):
                        f"Use {' or '.join([f'`{x} help`' for x in self.triggers])} to get a list of my commands."
 
         if response is not None:
-            try:
-                response = response.format(**event_dict)
-            except KeyError:
-                # Response likely has some curly braces in it that disrupt str.format().
-                # Pass string without formatting
-                pass
             if isinstance(response, str):
+                try:
+                    response = response.format(**event_dict)
+                except KeyError:
+                    # Response likely has some curly braces in it that disrupt str.format().
+                    # Pass string without formatting
+                    pass
                 self.send_message(channel, response)
             elif isinstance(response, list):
                 self.send_message(channel, '', blocks=response)
