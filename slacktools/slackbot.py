@@ -48,7 +48,7 @@ class SlackBotBase(SlackTools):
         self.commands = commands
         self.cmd_categories = cmd_categories
 
-        self.bot_id = self.bot.auth_test()
+        self.bot_id = self.bot.auth_test()['bot_id']
         self.triggers = [self.bot_id]
         if triggers is not None:
             # Add in custom text triggers, if any
