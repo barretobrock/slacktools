@@ -278,7 +278,7 @@ class SlackBotBase(SlackTools):
         if 'messages' in resp.data.keys():
             msgs = resp['messages']
             last_msg = msgs[0]
-            if last_msg['text'] == "This content can't be displayed." and len(last_msg['blocks']) == 1:
+            if last_msg['text'] == "This content can't be displayed." and len(last_msg['blocks']) > 0:
                 # It's a block text, so we'll need to process it
                 #   Make sure a callable has been applied though
                 if callable_list is None:
