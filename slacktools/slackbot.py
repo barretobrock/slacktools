@@ -49,7 +49,7 @@ class SlackBotBase(SlackTools):
         self.cmd_categories = cmd_categories
 
         self.bot_id = self.bot.auth_test()['bot_id']
-        self.triggers = [self.bot_id]
+        self.triggers = [f'<@{self.bot_id}>']
         if triggers is not None:
             # Add in custom text triggers, if any
             self.triggers += triggers
@@ -266,7 +266,8 @@ class SlackBotBase(SlackTools):
         datediff = reldelta(datetime.now(), st_dt)
         return self._human_readable(datediff)
 
-    def get_prev_msg_in_channel(self, channel: str, timestamp: str) -> Optional[str]:
+    def get_prev_msg_in_channel(self, channel: str, timestamp: str,
+                                callable_list=None) -> Optional[Union[str, List[dict]]]:
         """Gets the previous message from the channel"""
         resp = self.bot.conversations_history(
             channel=channel,
@@ -276,8 +277,74 @@ class SlackBotBase(SlackTools):
             return None
         if 'messages' in resp.data.keys():
             msgs = resp['messages']
-            return msgs[0]['text']
+            last_msg = msgs[0]
+            if last_msg['text'] == 'This content can\'t be displayed':
+                # It's a block text, so we'll need to process it
+                #   Make sure a callable has been applied though
+                if callable_list is None:
+                    return 'Callable not included in get_prev_msg... Can\'t process blocks without this!'
+                return self.apply_function_to_text_from_blocks(last_msg['blocks'],
+                                                               callable_list=callable_list)
+            return last_msg['text']
         return None
+
+    def apply_function_to_text_from_blocks(self, blocks: List[dict], callable_list: list) -> List[dict]:
+        """
+        1) Iterates through a block, grabs text, replaces it with 'placeholder_x'
+        2) Take the dictionary of text with placeholders, applies a function to it,
+            which replaces the text in that dictionary
+        3) Takes the dictionary with the replaced text and applies it back into the block
+        """
+        translations_dict = {}
+        for block in blocks:
+            txt_dict, block_dict, n = self.nested_dict_replacer(block)
+            for k, v in txt_dict.items():
+                translations_dict[k] = callable_list[0](*callable_list[1:])
+
+        # Replace blocks with translations
+        for i, block in enumerate(blocks):
+            txt_dict, block_dict, n = self.nested_dict_replacer(block, placeholders=translations_dict,
+                                                                extract=False)
+            blocks[i] = block_dict
+
+        return blocks
+
+    def nested_dict_replacer(self, d: dict, num: int = 0, placeholders: dict = None,
+                             extract: bool = True) -> Tuple[dict, dict, int]:
+        """Iterates through a nested dict, replaces items in 'text' field with placeholders and vice versa
+        Args:
+            d: dict, the (likely nested) input dictionary to work on
+            num: int, the nth placeholder we're working on
+            placeholders: dict,
+                key = placeholder text,
+                value = original text if extract == True otherwise translated
+            extract: bool, if True, will extract from d -> placeholders
+                if False, will replace placeholder text in d with translated text in placeholders
+        """
+        if placeholders is None:
+            placeholders = {}
+
+        for k, v in d.copy().items():
+            if isinstance(v, dict):
+                placeholders, d[k], num = self.nested_dict_replacer(v, num, placeholders, extract=extract)
+            if isinstance(v, list):
+                for j, item in enumerate(v):
+                    placeholders, d[k][j], num = self.nested_dict_replacer(item, num, placeholders,
+                                                                           extract=extract)
+            else:
+                if k == 'text':
+                    if extract:
+                        placeholder = f'placeholder_{num}'
+                        # Take the text and move it to the temp dict
+                        placeholders[placeholder] = v
+                        # Replace the value in the real dict with the placeholder
+                        d[k] = placeholder
+                        num += 1
+                    else:
+                        # Replace placeholder text with translated text
+                        placeholder = d[k]
+                        d[k] = placeholders[placeholder]
+        return placeholders, d, num
 
     def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
         """Wrapper to send message to whole channel"""
