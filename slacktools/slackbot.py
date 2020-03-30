@@ -299,6 +299,10 @@ class SlackBotBase(SlackTools):
         for block in blocks:
             txt_dict, block_dict, n = self.nested_dict_replacer(block)
             for k, v in txt_dict.items():
+                if 'text' in callable_list:
+                    # Swap this string out for the actual text
+                    txt_pos = callable_list.index('text')
+                    callable_list[txt_pos] = v
                 translations_dict[k] = callable_list[0](*callable_list[1:])
 
         # Replace blocks with translations
