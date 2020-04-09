@@ -252,7 +252,23 @@ class SlackTools:
                     err_msg += '\nneeded: {needed}\n'.format(**response.data)
                 raise Exception(err_msg)
 
-    def get_channel_members(self, channel: str, humans_only: bool = False) -> list:
+    @staticmethod
+    def clean_user_info(user_dict: dict) -> dict:
+        """Takes in a user dict of the user's info and flattens it,
+        returning a flat dictionary of only the useful data"""
+        return {
+            'id': user_dict['id'],
+            'avi_hash': user_dict['avatar_hash'],
+            'avi': user_dict['image_512'],
+            'name': user_dict['name'],
+            'real_name': user_dict['real_name'],
+            'is_bot': user_dict['is_bot'],
+            'display_name': user_dict['profile']['display_name'],
+            'status_emoji': user_dict['profile']['status_emoji'],
+            'status_text': user_dict['profile']['status_text'],
+        }
+
+    def get_channel_members(self, channel: str, humans_only: bool = False) -> List[dict]:
         """Collect members of a particular channel
         Args:
             channel: str, the channel to examine
@@ -265,15 +281,7 @@ class SlackTools:
         user_ids = resp['members']
         users = []
         for user in self.get_users_info(user_ids):
-            users.append({
-                'id': user['id'],
-                'name': user['name'],
-                'real_name': user['real_name'],
-                'is_bot': user['is_bot'],
-                'display_name': user['profile']['display_name'],
-                'status_emoji': user['profile']['status_emoji'],
-                'status_text': user['profile']['status_text'],
-            })
+            users.append(self.clean_user_info(user))
 
         return [user for user in users if not user['is_bot']] if humans_only else users
 
@@ -575,16 +583,16 @@ class SlackTools:
 
         letter_dict = self._build_emoji_letter_dict()
         built_phrase = []
-        for l in list(phrase):
+        for letter in list(phrase):
             # Lookup letter
-            if l in letter_dict.keys():
-                vals = letter_dict[l]
+            if letter in letter_dict.keys():
+                vals = letter_dict[letter]
                 rand_l = vals[randint(0, len(vals) - 1)]
                 built_phrase.append(':{}:'.format(rand_l))
-            elif l == ' ':
+            elif letter == ' ':
                 built_phrase.append(':blank:')
             else:
-                built_phrase.append(l)
+                built_phrase.append(letter)
 
         done_phrase = ''.join(built_phrase)
         return done_phrase

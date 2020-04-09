@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import re
+import traceback
 from datetime import datetime
 from dateutil.relativedelta import relativedelta as reldelta
 from typing import List, Union, Tuple, Optional, Callable
@@ -10,7 +11,7 @@ from .tools import BlockKitBuilder, SlackTools
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, log_name: str, triggers: List[str], team: str, main_channel: str, xoxp_token: str,
-                 xoxb_token: str, commands: dict, cmd_categories: List[str]):
+                 xoxb_token: str, commands: dict, cmd_categories: List[str], debug: bool = False):
         """
         Args:
             log_name: str, log name of kavalkilu.Log object for logging special events
@@ -32,8 +33,10 @@ class SlackBotBase(SlackTools):
                             pattern: str, the flag pattern
                             desc: str, the description of this flag
             cmd_categories: list of str, the categories to group the above commands in to
+            debug: bool, if True, will provide additional info into exceptions
         """
         super().__init__(team, xoxp_token=xoxp_token, xoxb_token=xoxb_token)
+        self.debug = debug
         # self.log = Log(log_name, child_name='slacktools')
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
@@ -55,6 +58,11 @@ class SlackBotBase(SlackTools):
         if triggers is not None:
             # Add in custom text triggers, if any
             self.triggers += triggers
+
+        # This is a data store of handled past message hashes to help enforce only one action per command issued
+        #   This was mainly built as a response to occasional duplicate responses
+        #   due to delay in Slack receiving a response. I've yet to figure out how to improve response time
+        self.message_events = []
 
     def update_commands(self, commands: dict):
         """Updates the dictionary of commands"""
@@ -133,6 +141,41 @@ class SlackBotBase(SlackTools):
                         'raw_message': raw_message.strip()
                     }
         return None
+
+    def parse_event(self, event_data: dict):
+        """Takes in an Events API message-triggered event dict and determines
+         if a command was issued to the bot"""
+        event = event_data['event']
+        msg_packet = None
+        if event['type'] == 'message' and "subtype" not in event:
+            trigger, message, raw_message = self.parse_direct_mention(event['text'])
+            if trigger in self.triggers:
+                # Build a message hash
+                msg_hash = f'{event["channel"]}_{event["ts"]}'
+                if msg_hash not in self.message_events:
+                    self.message_events.append(msg_hash)
+                    msg_packet = {
+                        'message': message.strip(),
+                        'raw_message': raw_message.strip()
+                    }
+                    # Add in all the other stuff
+                    msg_packet.update(event)
+
+        if msg_packet is not None:
+            try:
+                self.handle_command(msg_packet)
+            except Exception as e:
+                if not isinstance(e, RuntimeError):
+                    exception_msg = '{}: {}'.format(e.__class__.__name__, e)
+                    if self.debug:
+                        blocks = [
+                            self.bkb.make_context_section(f"Exception occurred: \n*`{exception_msg}`*"),
+                            self.bkb.make_block_divider(),
+                            self.bkb.make_context_section(f'```{traceback.format_exc()}```')
+                        ]
+                        self.send_message(msg_packet['channel'], message='', blocks=blocks)
+                    else:
+                        self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
 
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
