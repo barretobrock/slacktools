@@ -177,6 +177,21 @@ class SlackBotBase(SlackTools):
                     else:
                         self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
 
+    def parse_slash_command(self, event_data: dict):
+        """Takes in info relating to a slash command that was triggered and
+        determines how the command should be handled
+        """
+        user = event_data['user_id']
+        channel = event_data['channel_id']
+        command = event_data['command']
+        text = event_data['text']
+
+        processed_cmd = command.split('-')[1]
+        if text != '':
+            processed_cmd += text
+
+        self.handle_command({'message': processed_cmd, 'channel': channel})
+
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
         """Takes in a message string and parses out flags in the string and the values following them
