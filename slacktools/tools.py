@@ -258,14 +258,15 @@ class SlackTools:
         returning a flat dictionary of only the useful data"""
         return {
             'id': user_dict['id'],
-            'avi_hash': user_dict['avatar_hash'],
-            'avi': user_dict['image_512'],
             'name': user_dict['name'],
             'real_name': user_dict['real_name'],
             'is_bot': user_dict['is_bot'],
+            'title': user_dict['profile']['title'],
             'display_name': user_dict['profile']['display_name'],
             'status_emoji': user_dict['profile']['status_emoji'],
             'status_text': user_dict['profile']['status_text'],
+            'avi_hash': user_dict['profile']['avatar_hash'],
+            'avi': user_dict['profile']['image_512'],
         }
 
     def get_channel_members(self, channel: str, humans_only: bool = False) -> List[dict]:
