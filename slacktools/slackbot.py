@@ -54,7 +54,7 @@ class SlackBotBase(SlackTools):
         auth_test = self.bot.auth_test()
         self.bot_id = auth_test['bot_id']
         self.user_id = auth_test['user_id']
-        self.triggers = [f'<@{self.bot_id}>']
+        self.triggers = [f'{self.user_id}']
         if triggers is not None:
             # Add in custom text triggers, if any
             self.triggers += triggers
@@ -124,23 +124,6 @@ class SlackBotBase(SlackTools):
             # self.log.debug('Message: {}'.format(message_txt))
             return trigger, message_txt, raw_message
         return None, None, None
-
-    def parse_bot_commands(self, slack_events: List[dict]) -> Optional[dict]:
-        """Parses a list of events coming from the Slack RTM API to find bot commands.
-            If a bot command is found, this function returns a tuple of command and channel.
-            If its not found, then this function returns None, None.
-        """
-        for event in slack_events:
-            if event['type'] == 'message' and "subtype" not in event:
-                trigger, message, raw_message = self.parse_direct_mention(event['text'])
-                if trigger in self.triggers:
-                    return {
-                        'user': event['user'],
-                        'channel': event['channel'],
-                        'message': message.strip(),
-                        'raw_message': raw_message.strip()
-                    }
-        return None
 
     def parse_event(self, event_data: dict):
         """Takes in an Events API message-triggered event dict and determines
