@@ -240,6 +240,8 @@ class SlackBotBase(SlackTools):
             if match is not None:
                 # We've matched on a command
                 resp = resp_dict['value']
+                # Add the regex pattern into the event dict
+                event_dict['match_pattern'] = regex
                 if isinstance(resp, list):
                     if isinstance(resp[0], dict):
                         # Response is a JSON blob for handling in Block Kit.
@@ -253,7 +255,7 @@ class SlackBotBase(SlackTools):
                             if k in resp_list:
                                 resp_list[resp_list.index(k)] = v
                         # Function with args; sometimes response can be None
-                        response = self.call_command(*resp_list, match_pattern=regex)
+                        response = self.call_command(*resp_list)
                 else:
                     # String response
                     response = resp
