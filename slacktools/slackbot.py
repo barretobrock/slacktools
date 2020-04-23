@@ -55,9 +55,13 @@ class SlackBotBase(SlackTools):
         self.bot_id = auth_test['bot_id']
         self.user_id = auth_test['user_id']
         self.triggers = [f'{self.user_id}']
+        # User ids are formatted in a different way, so just
+        #   break this out into a variable for displaying in help text
+        self.triggers_txt = [f'<@{self.user_id}>']
         if triggers is not None:
             # Add in custom text triggers, if any
             self.triggers += triggers
+            self.triggers_txt += triggers
 
         # This is a data store of handled past message hashes to help enforce only one action per command issued
         #   This was mainly built as a response to occasional duplicate responses
@@ -264,7 +268,8 @@ class SlackBotBase(SlackTools):
 
         if message != '' and not is_matched:
             response = f"I didn\'t understand this: *`{message}`*\n" \
-                       f"Use {' or '.join([f'`{x} help`' for x in self.triggers])} to get a list of my commands."
+                       f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
+                       f"to get a list of my commands."
 
         if response is not None:
             if isinstance(response, str):

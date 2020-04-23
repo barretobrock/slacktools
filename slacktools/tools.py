@@ -310,20 +310,27 @@ class SlackTools:
                 user_info.append(resp['user'])
         return user_info
 
-    def private_channel_message(self, user_id: str, channel: str, message: str, **kwargs):
+    def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
+                                **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
         resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
         self._check_for_exception(resp)
+        if ret_ts:
+            # Return the timestamp from the message
+            return resp['ts']
 
-    def private_message(self, user_id: str, message: str, **kwargs):
+    def private_message(self, user_id: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
         resp = self.bot.im_open(user=user_id)
         # Check response for exception
         self._check_for_exception(resp)
         # DM the user
-        self.send_message(channel=resp['channel']['id'], message=message, **kwargs)
+        self.send_message(channel=resp['channel']['id'], message=message, ret_ts=ret_ts, **kwargs)
+        if ret_ts:
+            # Return the timestamp from the message
+            return resp['ts']
 
     def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
         """Collect channel history"""
@@ -331,10 +338,13 @@ class SlackTools:
         self._check_for_exception(resp)
         return resp['messages']
 
-    def send_message(self, channel: str, message: str, **kwargs):
+    def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Sends a message to the specific channel"""
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
         self._check_for_exception(resp)
+        if ret_ts:
+            # Return the timestamp from the message
+            return resp['ts']
 
     def upload_file(self, channel: str, filepath: str, filename: str):
         """Uploads the selected file to the given channel"""
@@ -479,12 +489,17 @@ class SlackTools:
         self._check_for_exception(resp)
         return resp['emoji']
 
-    def delete_message(self, message_dict: dict):
+    def delete_message(self, message_dict: dict = None, channel: str = None, ts: str = None):
         """Deletes a given message
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
         """
-        resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
+        if message_dict is None and any([x is None for x in [channel, ts]]):
+            raise ValueError('Either message_dict should have a value or provide a channel id and timestamp.')
+        if message_dict is not None:
+            resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
+        else:
+            resp = self.bot.chat_delete(channel=channel, ts=ts)
         self._check_for_exception(resp)
 
     def search_messages_by_date(self, channel: str, from_date: str, date_format: str = '%Y-%m-%d %H:%M',
