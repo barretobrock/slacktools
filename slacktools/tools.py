@@ -332,12 +332,6 @@ class SlackTools:
             # Return the timestamp from the message
             return resp['ts']
 
-    def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
-        """Collect channel history"""
-        resp = self.bot.conversations_history(channel=channel, limit=limit)
-        self._check_for_exception(resp)
-        return resp['messages']
-
     def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Sends a message to the specific channel"""
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
@@ -345,6 +339,74 @@ class SlackTools:
         if ret_ts:
             # Return the timestamp from the message
             return resp['ts']
+
+    def update_message(self, channel: str, ts: str, message: str = None, blocks: List[dict] = None):
+        """Updates a message"""
+        resp = self.bot.chat_update(channel=channel, ts=ts, text=message, blocks=blocks)
+        self._check_for_exception(resp)
+
+    def delete_message(self, message_dict: dict = None, channel: str = None, ts: str = None):
+        """Deletes a given message
+        NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
+            use search_messages_by_date() to determine the messages to delete
+        """
+        if message_dict is None and any([x is None for x in [channel, ts]]):
+            raise ValueError('Either message_dict should have a value or provide a channel id and timestamp.')
+        if message_dict is not None:
+            resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
+        else:
+            resp = self.bot.chat_delete(channel=channel, ts=ts)
+        self._check_for_exception(resp)
+
+    def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
+        """Collect channel history"""
+        resp = self.bot.conversations_history(channel=channel, limit=limit)
+        self._check_for_exception(resp)
+        return resp['messages']
+
+    def search_messages_by_date(self, channel: str, from_date: str, date_format: str = '%Y-%m-%d %H:%M',
+                                max_results: int = 100) -> Optional[List[dict]]:
+        """Search for messages in a channel after a certain date
+
+        Args:
+            channel: str, the channel (e.g., "#channel")
+            from_date: str, the date from which to begin collecting channels
+            date_format: str, the format of the date entered
+            max_results: int, the maximum number of results per page to return
+
+        Returns: list of dict, channels matching the query
+        """
+        from_date = dt.strptime(from_date, date_format)
+        # using the 'after' filter here, so take it back one day
+        slack_date = from_date - tdelta(days=1)
+
+        resp = None
+        for attempt in range(3):
+            resp = self.user.search_messages(
+                query=f'in:{channel} after:{slack_date:%F}',
+                count=max_results
+            )
+            try:
+                self._check_for_exception(resp)
+                break
+            except Exception as e:
+                print('Call failed. Error: {}'.format(e))
+                time.sleep(2)
+
+        if resp is None:
+            return None
+
+        if 'messages' in resp.data.keys():
+            msgs = resp['messages']['matches']
+            filtered_msgs = []
+            for msg in msgs:
+                # Append the message as long as it's timestamp is later or equal to the time entered
+                ts = dt.fromtimestamp(int(round(float(msg['ts']), 0)))
+                if ts >= from_date:
+                    filtered_msgs.append(msg)
+            return filtered_msgs
+
+        return None
 
     def upload_file(self, channel: str, filepath: str, filename: str):
         """Uploads the selected file to the given channel"""
@@ -488,63 +550,6 @@ class SlackTools:
         resp = self.bot.emoji_list()
         self._check_for_exception(resp)
         return resp['emoji']
-
-    def delete_message(self, message_dict: dict = None, channel: str = None, ts: str = None):
-        """Deletes a given message
-        NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
-            use search_messages_by_date() to determine the messages to delete
-        """
-        if message_dict is None and any([x is None for x in [channel, ts]]):
-            raise ValueError('Either message_dict should have a value or provide a channel id and timestamp.')
-        if message_dict is not None:
-            resp = self.bot.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
-        else:
-            resp = self.bot.chat_delete(channel=channel, ts=ts)
-        self._check_for_exception(resp)
-
-    def search_messages_by_date(self, channel: str, from_date: str, date_format: str = '%Y-%m-%d %H:%M',
-                                max_results: int = 100) -> Optional[List[dict]]:
-        """Search for messages in a channel after a certain date
-
-        Args:
-            channel: str, the channel (e.g., "#channel")
-            from_date: str, the date from which to begin collecting channels
-            date_format: str, the format of the date entered
-            max_results: int, the maximum number of results per page to return
-
-        Returns: list of dict, channels matching the query
-        """
-        from_date = dt.strptime(from_date, date_format)
-        # using the 'after' filter here, so take it back one day
-        slack_date = from_date - tdelta(days=1)
-
-        resp = None
-        for attempt in range(3):
-            resp = self.user.search_messages(
-                query=f'in:{channel} after:{slack_date:%F}',
-                count=max_results
-            )
-            try:
-                self._check_for_exception(resp)
-                break
-            except Exception as e:
-                print('Call failed. Error: {}'.format(e))
-                time.sleep(2)
-
-        if resp is None:
-            return None
-
-        if 'messages' in resp.data.keys():
-            msgs = resp['messages']['matches']
-            filtered_msgs = []
-            for msg in msgs:
-                # Append the message as long as it's timestamp is later or equal to the time entered
-                ts = dt.fromtimestamp(int(round(float(msg['ts']), 0)))
-                if ts >= from_date:
-                    filtered_msgs.append(msg)
-            return filtered_msgs
-
-        return None
 
     @staticmethod
     def _build_emoji_letter_dict() -> dict:
