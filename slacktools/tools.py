@@ -320,17 +320,18 @@ class SlackTools:
             # Return the timestamp from the message
             return resp['ts']
 
-    def private_message(self, user_id: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
+    def private_message(self, user_id: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str, str]:
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
         resp = self.bot.im_open(user=user_id)
+        dm_chan = resp['channel']['id']
         # Check response for exception
         self._check_for_exception(resp)
         # DM the user
-        self.send_message(channel=resp['channel']['id'], message=message, ret_ts=ret_ts, **kwargs)
+        resp2 = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, **kwargs)
         if ret_ts:
             # Return the timestamp from the message
-            return resp['ts']
+            return dm_chan, resp2['ts']
 
     def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Sends a message to the specific channel"""
