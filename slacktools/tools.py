@@ -329,10 +329,10 @@ class SlackTools:
         # Check response for exception
         self._check_for_exception(resp)
         # DM the user
-        resp2 = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, **kwargs)
+        ts = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, **kwargs)
         if ret_ts:
             # Return the timestamp from the message
-            return dm_chan, resp2['ts']
+            return dm_chan, ts
 
     def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Sends a message to the specific channel"""

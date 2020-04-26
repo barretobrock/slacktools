@@ -60,6 +60,10 @@ class TestSlackTools(unittest.TestCase):
         ]
         self.st.update_message(self.test_channel, ts, blocks=block)
 
+    def test_dm_and_update(self):
+        dm_chan, ts = self.st.private_message(self.test_user, 'Testerino', ret_ts=True)
+        self.st.update_message(dm_chan, ts, 'Hello, this is updated')
+
     def test_private_message(self):
         self.st.private_message(self.test_user, 'Testerino')
 
