@@ -8,7 +8,7 @@ import string
 import pygsheets
 import requests
 import pandas as pd
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 from tabulate import tabulate
 from asyncio import Future
 from slack import WebClient
@@ -320,7 +320,8 @@ class SlackTools:
             # Return the timestamp from the message
             return resp['ts']
 
-    def private_message(self, user_id: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str, str]:
+    def private_message(self, user_id: str, message: str, ret_ts: bool = False,
+                        **kwargs) -> Optional[Tuple[str, str]]:
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
         resp = self.bot.im_open(user=user_id)
