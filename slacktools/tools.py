@@ -318,7 +318,7 @@ class SlackTools:
         self._check_for_exception(resp)
         if ret_ts:
             # Return the timestamp from the message
-            return resp['ts']
+            return resp['message_ts']
 
     def private_message(self, user_id: str, message: str, ret_ts: bool = False,
                         **kwargs) -> Optional[Tuple[str, str]]:
