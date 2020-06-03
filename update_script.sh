@@ -9,6 +9,9 @@
 #/      -v|--version                        Prints script name & version.
 #/
 
+# Exit when any command fails
+set -e
+
 # DEFAULT VARIABLES
 # ------------------------------------------
 NAME="Repo Update Script"
@@ -16,6 +19,7 @@ VERSION="0.0.1"
 SKIP_DEPS=0
 
 # Import common variables / functions
+source ./
 source ./common.sh
 
 # REPO-SPECIFIC VARIABLES

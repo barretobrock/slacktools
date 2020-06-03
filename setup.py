@@ -22,12 +22,12 @@ setup_args = {
     'author_email': 'barret@barretobrock.ee',
     'packages': find_packages(exclude=['tests']),
     'install_requires': [
-        'slackclient==2.5.0',
-        'tabulate==0.8.3',
-        'Flask==1.1.1',
+        'Flask==1.1.2',
         'pyee==7.0.1',
-        'pygsheets==2.0.2',
+        'pygsheets==2.0.3.1',
         'requests>=2.20.0'
+        'slackclient==2.6.1',
+        'tabulate==0.8.7',
     ],
 }
 
