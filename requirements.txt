@@ -1,0 +1,7 @@
+Flask>=1.1.2
+pyee==7.0.1
+pygsheets==2.0.3.1
+PyYAML==5.3.1
+requests>=2.20.0
+slackclient==2.7.0
+tabulate==0.8.7
