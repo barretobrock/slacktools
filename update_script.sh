@@ -9,44 +9,32 @@
 #/      -v|--version                        Prints script name & version.
 #/
 
-# Exit when any command fails
-set -e
-
 # DEFAULT VARIABLES
 # ------------------------------------------
 NAME="Repo Update Script"
-VERSION="0.0.1"
+VERSION="0.0.3"
 SKIP_DEPS=0
 
 # Import common variables / functions
-source ./
 source ./common.sh
-
-# REPO-SPECIFIC VARIABLES
-# ------------------------------------------
-REPO=slacktools
-GIT_URL=git+https://github.com/barretobrock/${REPO}.git#egg=${REPO}
-# DIRECTORY
-REPO_DIR=${HOME}/extras/${REPO}
+eval $(parse_yaml config.yaml)
 
 NODEPS_FLAG=''
 if [[ "${SKIP_DEPS}" == "1" ]];
 then
-    echo "Not pip installing dependencies"
+    echo "Not installing dependencies"
     NODEPS_FLAG="--no-deps"
 fi
 
 # GIT PULL
 # ------------------------------------------
 announce_section "Pulling update from git repo"
-# TODO see if I can check if master is up to date before issuing command. If it is, don't pull
 (cd ${REPO_DIR} && git pull origin master)
 
 # PY PACKAGE UPDATE
 # ------------------------------------------
-# Then update the python package locally
-announce_section "Beginning update of ${REPO}"
-# TODO check if installed, then upgrade if so
-python3 -m pip install ${GIT_URL} --upgrade ${NODEPS_FLAG}
+# Update the python package locally
+announce_section "Beginning update of ${REPO_NAME}"
+${REPO_VENV} -m pip install -e ${REPO_GIT_URL} --upgrade ${NODEPS_FLAG}
 
 announce_section "Process completed"
