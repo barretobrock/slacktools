@@ -376,7 +376,7 @@ class SlackTools:
         Args:
             channel: str, the channel (e.g., "#channel")
             from_uid: str, the user id to filter on (no '<@' prefix)
-            after_date: datetime, the date after which to examine. cannot be used with other date filters
+            after_date: datetime, the (inclusive) date after which to examine. cannot be used with other date filters
             after_ts: datetime, after querying, will further filter messages based on specific timestamp here
             on_date: datetime, the date to filter on. cannot be used with other date filters
             during_m: datetime, the most month period to filter on.
@@ -397,7 +397,8 @@ class SlackTools:
             query += f' from:<@{from_uid}>'
 
         if after_date is not None:
-            query += f' after:{after_date.strftime(slack_date_fmt)}'
+            # Made this inclusive to avoid excluding the entire date
+            query += f' after:{(after_date - tdelta(days=1)).strftime(slack_date_fmt)}'
         elif on_date is not None:
             query += f' on:{on_date.strftime(slack_date_fmt)}'
         elif during_m is not None:
