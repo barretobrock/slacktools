@@ -367,7 +367,7 @@ class SlackTools:
         self._check_for_exception(resp)
         return resp['messages']
 
-    def search_messages_by_date(self, channel: str, from_uid: str = None, after_date: dt = None,
+    def search_messages_by_date(self, channel: str = None, from_uid: str = None, after_date: dt = None,
                                 after_ts: dt = None, on_date: dt = None, during_m: dt = None,
                                 has_emoji: str = None, has_pin: bool = None,
                                 max_results: int = 100) -> Optional[List[dict]]:
@@ -390,7 +390,9 @@ class SlackTools:
         """
         slack_date_fmt = '%m-%d-%Y'  # Slack has a specific format to adhere to when in the US lol
         # Begin building queries
-        query = f'in:{channel}'
+        query = ''
+        if channel is not None:
+            query += f'in:{channel}'
         if from_uid is not None:
             query += f' from:<@{from_uid}>'
 
