@@ -7,6 +7,7 @@ import json
 import string
 import pygsheets
 import requests
+from io import BytesIO
 import pandas as pd
 from typing import Union, List, Optional, Tuple
 from tabulate import tabulate
@@ -324,7 +325,7 @@ class SlackTools:
                         **kwargs) -> Optional[Tuple[str, str]]:
         """Send private message to user"""
         # Grab the DM "channel" associated with the user
-        resp = self.bot.im_open(user=user_id)
+        resp = self.bot.conversations_open(users=user_id)
         dm_chan = resp['channel']['id']
         # Check response for exception
         self._check_for_exception(resp)
@@ -366,26 +367,49 @@ class SlackTools:
         self._check_for_exception(resp)
         return resp['messages']
 
-    def search_messages_by_date(self, channel: str, from_date: str, date_format: str = '%Y-%m-%d %H:%M',
+    def search_messages_by_date(self, channel: str, from_uid: str = None, after_date: dt = None,
+                                after_ts: dt = None, on_date: dt = None, during_m: dt = None,
+                                has_emoji: str = None, has_pin: bool = None,
                                 max_results: int = 100) -> Optional[List[dict]]:
         """Search for messages in a channel after a certain date
 
         Args:
             channel: str, the channel (e.g., "#channel")
-            from_date: str, the date from which to begin collecting channels
-            date_format: str, the format of the date entered
+            from_uid: str, the user id to filter on (no '<@' prefix)
+            after_date: datetime, the date after which to examine. cannot be used with other date filters
+            after_ts: datetime, after querying, will further filter messages based on specific timestamp here
+            on_date: datetime, the date to filter on. cannot be used with other date filters
+            during_m: datetime, the most month period to filter on.
+            has_emoji: str, filters on messages containing a certain emoji (':this-with-colon:')
+            has_pin: bool, filters on whether the message is pinned
             max_results: int, the maximum number of results per page to return
 
         Returns: list of dict, channels matching the query
+
+        Notes: more on search modifiers here: https://slack.com/help/articles/202528808-Search-in-Slack
         """
-        from_date = dt.strptime(from_date, date_format)
-        # using the 'after' filter here, so take it back one day
-        slack_date = from_date - tdelta(days=1)
+        slack_date_fmt = '%m-%d-%Y'  # Slack has a specific format to adhere to when in the US lol
+        # Begin building queries
+        query = f'in:{channel}'
+        if from_uid is not None:
+            query += f' from:<@{from_uid}>'
+
+        if after_date is not None:
+            query += f' after:{after_date.strftime(slack_date_fmt)}'
+        elif on_date is not None:
+            query += f' on:{on_date.strftime(slack_date_fmt)}'
+        elif during_m is not None:
+            query += f' during:{during_m.strftime("%B").lower()}'
+        if has_emoji is not None:
+            query += f' has:{has_emoji}'
+        if has_pin is not None:
+            if has_pin:
+                query += f' has:pin'
 
         resp = None
         for attempt in range(3):
             resp = self.user.search_messages(
-                query=f'in:{channel} after:{slack_date:%F}',
+                query=query,
                 count=max_results
             )
             try:
@@ -400,19 +424,27 @@ class SlackTools:
 
         if 'messages' in resp.data.keys():
             msgs = resp['messages']['matches']
-            filtered_msgs = []
-            for msg in msgs:
-                # Append the message as long as it's timestamp is later or equal to the time entered
-                ts = dt.fromtimestamp(int(round(float(msg['ts']), 0)))
-                if ts >= from_date:
-                    filtered_msgs.append(msg)
-            return filtered_msgs
+            if after_ts is not None:
+                filtered_msgs = [x for x in msgs if float(x['ts']) >= after_ts.timestamp()]
+                return filtered_msgs
+            return msgs
 
         return None
 
-    def upload_file(self, channel: str, filepath: str, filename: str):
+    def upload_file(self, channel: str, filepath: str, filename: str, is_url: bool = False, txt: str = ''):
         """Uploads the selected file to the given channel"""
-        resp = self.bot.files_upload(file=open(filepath, 'rb'), channels=channel, filename=filename)
+        if is_url:
+            file = requests.get(filepath)
+            fbytes = BytesIO(file.content)
+        else:
+            fbytes = open(filepath, 'rb')
+
+        resp = self.bot.files_upload(
+            file=fbytes,
+            channels=channel,
+            filename=filename,
+            initial_comment=txt
+        )
         self._check_for_exception(resp)
 
     @staticmethod
