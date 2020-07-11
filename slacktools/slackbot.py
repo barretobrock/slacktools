@@ -5,12 +5,13 @@ import traceback
 from datetime import datetime
 from dateutil.relativedelta import relativedelta as reldelta
 from typing import List, Union, Tuple, Optional, Callable
+from kavalkilu import Log, DateTools
 from .tools import BlockKitBuilder, SlackTools
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, log_name: str, triggers: List[str], team: str, main_channel: str, xoxp_token: str,
+    def __init__(self, log_name: str, triggers: List[str], team: str, test_channel: str, xoxp_token: str,
                  xoxb_token: str, commands: dict, cmd_categories: List[str], debug: bool = False):
         """
         Args:
@@ -18,7 +19,7 @@ class SlackBotBase(SlackTools):
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
             team: str, the Slack workspace name
-            main_channel: str, the default channel to communicate messages to
+            test_channel: str, the channel to send messages by default
             xoxp_token: str, the user token
             xoxb_token: str, the bot token
             commands: dict, all the commands the bot recognizes (to be built into help text)
@@ -37,7 +38,7 @@ class SlackBotBase(SlackTools):
         """
         super().__init__(team, xoxp_token=xoxp_token, xoxb_token=xoxb_token)
         self.debug = debug
-        # self.log = Log(log_name, child_name='slacktools')
+        self.log = Log(log_name, child_name='slacktools')
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
@@ -45,7 +46,7 @@ class SlackBotBase(SlackTools):
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
-        self.main_channel = main_channel
+        self.test_channel = test_channel
 
         self.bkb = BlockKitBuilder()
         self.commands = commands
@@ -408,8 +409,8 @@ class SlackBotBase(SlackTools):
     def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
-            self.send_message(self.main_channel, message)
+            self.send_message(self.test_channel, message)
         elif blocks is not None:
-            self.send_message(self.main_channel, message='', blocks=blocks)
+            self.send_message(self.test_channel, message='', blocks=blocks)
         else:
             raise ValueError('No data passed for message.')

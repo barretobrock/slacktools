@@ -6,3 +6,5 @@ REPO:
   DIR: ${HOME}/extras/${REPO_NAME}
   VENV: ${HOME}/venvs/slackspace/bin/python
   DESC: A common library for working with Slack
+  DEPS:
+    - git+https://github.com/barretobrock/kavalkilu.git#egg=kavalkilu
