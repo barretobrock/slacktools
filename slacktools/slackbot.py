@@ -42,7 +42,6 @@ class SlackBotBase(SlackTools):
         """
         super().__init__(creds)
         self.debug = debug
-        self.log = Log(log_name, child_name='slackbot')
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
@@ -88,7 +87,7 @@ class SlackBotBase(SlackTools):
         Returns:
             list of dict, Block Kit-ready help text
         """
-
+        self._log_debug(f'Building help block')
         blocks = [
             self.bkb.make_block_section(intro, accessory=self.bkb.make_image_accessory(avi_url, avi_alt)),
             self.bkb.make_block_divider()
@@ -124,11 +123,11 @@ class SlackBotBase(SlackTools):
             if matches.group(1).lower() in self.triggers:
                 # Matched using abbreviated triggers
                 trigger = matches.group(1).lower()
-                # self.log.debug('Matched on abbreviated trigger: {}'.format(trigger))
+                self._log_debug(f'Matched on abbreviated trigger: {trigger}, msg: {message}')
             else:
                 # Matched using bot id
                 trigger = matches.group(2)
-                # self.log.debug('Matched on bot id: {}'.format(trigger))
+                self._log_debug(f'Matched on bot id: {trigger}, msg: {message}')
             message_txt = matches.group(3).lower().strip()
             raw_message = matches.group(3).strip()
             # self.log.debug('Message: {}'.format(message_txt))
@@ -168,6 +167,7 @@ class SlackBotBase(SlackTools):
                         ]
                         self.send_message(msg_packet['channel'], message='', blocks=blocks)
                     else:
+                        self._log_error(f'Exception occurred: {exception_msg}', e)
                         self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
 
     def parse_slash_command(self, event_data: dict):
@@ -182,6 +182,7 @@ class SlackBotBase(SlackTools):
         processed_cmd = command.split('-')[1]
         if text != '':
             processed_cmd += text
+        self._log_debug(f'Parsed slash command: {processed_cmd}')
 
         self.handle_command({'message': processed_cmd, 'channel': channel})
 
@@ -304,6 +305,7 @@ class SlackBotBase(SlackTools):
     def get_prev_msg_in_channel(self, channel: str, timestamp: str,
                                 callable_list=None) -> Optional[Union[str, List[dict]]]:
         """Gets the previous message from the channel"""
+        self._log_debug(f'Getting previous message in channel {channel}')
         resp = self.bot.conversations_history(
             channel=channel,
             latest=timestamp,
@@ -390,7 +392,7 @@ class SlackBotBase(SlackTools):
                         d[k] = placeholders[placeholder]
         return placeholders, d, num
 
-    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
+    def message_test_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
             self.send_message(self.test_channel, message)

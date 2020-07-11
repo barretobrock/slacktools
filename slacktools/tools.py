@@ -233,6 +233,14 @@ class SlackTools:
         if self.log is not None:
             self.log.debug(msg)
 
+    def _log_error(self, msg: str, exc_obj: Exception = None):
+        """Tests if log object is not None. If so, sends msg to debug level log"""
+        if self.log is not None:
+            if exc_obj is not None:
+                self.log.error_with_class(exc_obj, msg)
+            else:
+                self.log.error(msg)
+
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
         """Parses an <@{user}> mention and extracts the user id from it"""
