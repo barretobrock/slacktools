@@ -10,17 +10,22 @@ from .tools import BlockKitBuilder, SlackTools
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, log_name: str, triggers: List[str], team: str, test_channel: str, xoxp_token: str,
-                 xoxb_token: str, commands: dict, cmd_categories: List[str], debug: bool = False):
+    def __init__(self, log_name: str, triggers: List[str], creds: dict, test_channel: str, commands: dict,
+                 cmd_categories: List[str], debug: bool = False):
         """
         Args:
             log_name: str, log name of kavalkilu.Log object for logging special events
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
-            team: str, the Slack workspace name
+            creds: dict, contains tokens & other secrets for connecting & interacting with Slack
+                required keys:
+                    team: str, the Slack workspace name
+                    xoxp-token: str, the user token
+                    xoxb-token: str, the bot token
+                optional keys:
+                    cookie: str, cookie used for special processes outside
+                        the realm of common API calls e.g., emoji uploads
             test_channel: str, the channel to send messages by default
-            xoxp_token: str, the user token
-            xoxb_token: str, the bot token
             commands: dict, all the commands the bot recognizes (to be built into help text)
                 expected keys:
                     cat: str, the category of the command (for grouping purposes) - must match with categories list
@@ -35,9 +40,9 @@ class SlackBotBase(SlackTools):
             cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
-        super().__init__(team, xoxp_token=xoxp_token, xoxb_token=xoxb_token)
+        super().__init__(creds)
         self.debug = debug
-        self.log = Log(log_name, child_name='slacktools')
+        self.log = Log(log_name, child_name='slackbot')
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
