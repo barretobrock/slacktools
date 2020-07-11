@@ -3,7 +3,6 @@
 import re
 import traceback
 from datetime import datetime
-from dateutil.relativedelta import relativedelta as reldelta
 from typing import List, Union, Tuple, Optional, Callable
 from kavalkilu import Log, DateTools
 from .tools import BlockKitBuilder, SlackTools
@@ -39,6 +38,7 @@ class SlackBotBase(SlackTools):
         super().__init__(team, xoxp_token=xoxp_token, xoxb_token=xoxb_token)
         self.debug = debug
         self.log = Log(log_name, child_name='slacktools')
+        self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
@@ -169,7 +169,7 @@ class SlackBotBase(SlackTools):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
         """
-        user = event_data['user_id']
+        # user = event_data['user_id']
         channel = event_data['channel_id']
         command = event_data['command']
         text = event_data['text']
@@ -292,30 +292,9 @@ class SlackBotBase(SlackTools):
         """
         return cmd(*args, **kwargs)
 
-    @staticmethod
-    def _human_readable(reldelta_val: reldelta) -> str:
-        """Takes in a relative delta and makes it human readable"""
-        attrs = {
-            'years': 'y',
-            'months': 'mo',
-            'days': 'd',
-            'hours': 'h',
-            'minutes': 'm',
-            'seconds': 's'
-        }
-
-        result_list = []
-        for attr in attrs.keys():
-            attr_val = getattr(reldelta_val, attr)
-            if attr_val is not None:
-                if attr_val > 1:
-                    result_list.append('{:d}{}'.format(attr_val, attrs[attr]))
-        return ' '.join(result_list)
-
     def get_time_elapsed(self, st_dt: datetime) -> str:
         """Gets elapsed time between two datetimes"""
-        datediff = reldelta(datetime.now(), st_dt)
-        return self._human_readable(datediff)
+        return self.dt.get_human_readable_date_diff(st_dt, datetime.now())
 
     def get_prev_msg_in_channel(self, channel: str, timestamp: str,
                                 callable_list=None) -> Optional[Union[str, List[dict]]]:
