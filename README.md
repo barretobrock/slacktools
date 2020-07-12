@@ -6,18 +6,22 @@ This is really something I built for personal use. There are credential collecti
 
 ### Required scopes
 #### Bot
- - channels:read
- - channels:history
- - chat:write
- - groups:read
- - im:read
- - mpim:read
- - users:read
- - im:write
- - files:write
- - emoji:read
+ - channels.history
+ - channels.read
+ - chat.write
+ - emoji.read
+ - files.write
+ - groups.history
+ - groups.read
+ - im.history
+ - im.read
+ - im.write
+ - mpim.read
+ - reactions.read
+ - reactions.write
+ - users.read
 #### User
- - search:read
+ - search.read
 
 ## Installation
 ```bash
