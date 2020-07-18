@@ -180,7 +180,7 @@ class SlackBotBase(SlackTools):
         text = event_data['text']
         un = event_data['user_name']
 
-        processed_cmd = command.replace('/', '')
+        processed_cmd = command.replace('/', '').replace('-', ' ')
 
         if text != '':
             processed_cmd += f' {text}'
