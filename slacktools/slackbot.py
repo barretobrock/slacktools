@@ -180,11 +180,13 @@ class SlackBotBase(SlackTools):
         text = event_data['text']
         un = event_data['user_name']
 
-        if text != '':
-            command += text
-        self._log_debug(f'Parsed slash command from {un}: {command}')
+        processed_cmd = command.replace('/', '')
 
-        self.handle_command({'message': command, 'channel': channel, 'user': user})
+        if text != '':
+            processed_cmd += f' {text}'
+        self._log_debug(f'Parsed slash command from {un}: {processed_cmd}')
+
+        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user})
 
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
