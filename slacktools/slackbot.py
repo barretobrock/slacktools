@@ -174,17 +174,17 @@ class SlackBotBase(SlackTools):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
         """
-        # user = event_data['user_id']
+        user = event_data['user_id']
         channel = event_data['channel_id']
         command = event_data['command']
         text = event_data['text']
+        un = event_data['user_name']
 
-        processed_cmd = command.split('-')[1]
         if text != '':
-            processed_cmd += text
-        self._log_debug(f'Parsed slash command: {processed_cmd}')
+            command += text
+        self._log_debug(f'Parsed slash command from {un}: {command}')
 
-        self.handle_command({'message': processed_cmd, 'channel': channel})
+        self.handle_command({'message': command, 'channel': channel, 'user': user})
 
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
