@@ -186,7 +186,7 @@ class SlackBotBase(SlackTools):
             processed_cmd += f' {text}'
         self._log_debug(f'Parsed slash command from {un}: {processed_cmd}')
 
-        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user})
+        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user, 'raw_message': processed_cmd})
 
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
