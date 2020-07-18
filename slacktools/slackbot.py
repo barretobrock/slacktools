@@ -4,7 +4,7 @@ import re
 import traceback
 from datetime import datetime
 from typing import List, Union, Tuple, Optional, Callable
-from kavalkilu import Log, DateTools
+from kavalkilu import DateTools
 from .tools import BlockKitBuilder, SlackTools
 
 
@@ -40,7 +40,7 @@ class SlackBotBase(SlackTools):
             cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
-        super().__init__(creds)
+        super().__init__(creds, log_name=log_name)
         self.debug = debug
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
@@ -49,7 +49,7 @@ class SlackBotBase(SlackTools):
 
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
-        self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})(.*)'.format(trigger_formatted)
+        self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
         self.test_channel = test_channel
 
         self.bkb = BlockKitBuilder()
