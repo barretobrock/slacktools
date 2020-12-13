@@ -25,12 +25,12 @@ This is really something I built for personal use. There are credential collecti
 
 ## Installation
 ```bash
-pip3 install git+https://github.com/barretobrock/slacktools.git#egg=slacktools
+python3 -m pip install git+https://github.com/barretobrock/slacktools.git#egg=slacktools
 ```
 
 ## Upgrade
 ```bash
-pip3 install git+https://github.com/barretobrock/slacktools.git#egg=slacktools --upgrade
+python3 -m pip install git+https://github.com/barretobrock/slacktools.git#egg=slacktools --upgrade
 ```
 
 

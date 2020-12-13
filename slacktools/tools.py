@@ -18,7 +18,7 @@ from slack.errors import SlackApiError
 from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
-from kavalkilu import Log, DateTools
+from easylogger import Log
 
 
 class GSheetReader:
@@ -195,7 +195,7 @@ class BlockKitBuilder:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, creds: dict, log_name: str = None):
+    def __init__(self, creds: dict, parent_log: Log = None):
         """
         Args:
             creds: dict, contains tokens & other secrets for connecting & interacting with Slack
@@ -206,15 +206,12 @@ class SlackTools:
                 optional keys:
                     cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
-            log_name: str, the name of the log to attach to. if left None, no log object is made
+            parent_log: the parent log to attach to. if left None, the log is spun up on its own
         """
         need_keys = ['team', 'xoxp-token', 'xoxb-token']
         if not all([k in creds.keys() for k in need_keys]):
             raise ValueError(f'These keys are missing: {",".join(k for k in need_keys if k not in creds.keys())}')
-        if log_name is not None:
-            self.log = Log(log_name, child_name='slacktools')
-        else:
-            self.log = None
+        self.log = Log(parent_log, child_name=self.__class__.__name__)
         self.team = creds['team']
         # Grab tokens
         self.xoxp_token = creds['xoxp-token']
