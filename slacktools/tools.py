@@ -195,7 +195,7 @@ class BlockKitBuilder:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, creds: dict, parent_log: Log = None):
+    def __init__(self, creds: dict, parent_log: Log):
         """
         Args:
             creds: dict, contains tokens & other secrets for connecting & interacting with Slack
@@ -206,7 +206,7 @@ class SlackTools:
                 optional keys:
                     cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
-            parent_log: the parent log to attach to. if left None, the log is spun up on its own
+            parent_log: the parent log to attach to.
         """
         need_keys = ['team', 'xoxp-token', 'xoxb-token']
         if not all([k in creds.keys() for k in need_keys]):
@@ -224,19 +224,6 @@ class SlackTools:
         # Test API calls to the bot
         self.bot_id = self.bot.auth_test()
         self.session = self._init_session() if self.cookie != '' else None
-
-    def _log_debug(self, msg: str):
-        """Tests if log object is not None. If so, sends msg to debug level log"""
-        if self.log is not None:
-            self.log.debug(msg)
-
-    def _log_error(self, msg: str, exc_obj: Exception = None):
-        """Tests if log object is not None. If so, sends msg to debug level log"""
-        if self.log is not None:
-            if exc_obj is not None:
-                self.log.error_with_class(exc_obj, msg)
-            else:
-                self.log.error(msg)
 
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
@@ -297,7 +284,7 @@ class SlackTools:
             channel: str, the channel to examine
             humans_only: bool, if True, will only return non-bots in the channel
         """
-        self._log_debug(f'Getting channel members for channel {channel}.')
+        self.log.debug(f'Getting channel members for channel {channel}.')
         resp = self.bot.conversations_members(channel=channel)
 
         # Check response for exception
@@ -311,7 +298,7 @@ class SlackTools:
 
     def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
         """Collects info from a list of user ids"""
-        self._log_debug(f'Collecting users\' info.')
+        self.log.debug(f'Collecting users\' info.')
         user_info = []
         for user in user_list:
             resp = None
@@ -322,7 +309,7 @@ class SlackTools:
                     self._check_for_exception(resp)
                 if resp['error'] == 'user_not_found':
                     # Unsuccessful at finding user. Add in a placeholder.
-                    self._log_debug(f'User not found: {user}.')
+                    self.log.debug(f'User not found: {user}.')
                     resp = {
                         'user': {
                             'id': user,
@@ -338,7 +325,7 @@ class SlackTools:
     def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
                                 **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
-        self._log_debug(f'Sending private channel message: {channel} to {user_id}.')
+        self.log.debug(f'Sending private channel message: {channel} to {user_id}.')
         resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
         self._check_for_exception(resp)
@@ -349,7 +336,7 @@ class SlackTools:
     def private_message(self, user_id: str, message: str, ret_ts: bool = False,
                         **kwargs) -> Optional[Tuple[str, str]]:
         """Send private message to user"""
-        self._log_debug(f'Sending private message to {user_id}.')
+        self.log.debug(f'Sending private message to {user_id}.')
         # Grab the DM "channel" associated with the user
         resp = self.bot.conversations_open(users=user_id)
         dm_chan = resp['channel']['id']
@@ -363,7 +350,7 @@ class SlackTools:
 
     def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
         """Sends a message to the specific channel"""
-        self._log_debug(f'Sending channel message in {channel}.')
+        self.log.debug(f'Sending channel message in {channel}.')
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
         self._check_for_exception(resp)
         if ret_ts:
@@ -372,7 +359,7 @@ class SlackTools:
 
     def update_message(self, channel: str, ts: str, message: str = None, blocks: List[dict] = None):
         """Updates a message"""
-        self._log_debug(f'Updating message in {channel}.')
+        self.log.debug(f'Updating message in {channel}.')
         resp = self.bot.chat_update(channel=channel, ts=ts, text=message, blocks=blocks)
         self._check_for_exception(resp)
 
@@ -381,7 +368,7 @@ class SlackTools:
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
         """
-        self._log_debug(f'Attempting to delete message in {channel}.')
+        self.log.debug(f'Attempting to delete message in {channel}.')
         if message_dict is None and any([x is None for x in [channel, ts]]):
             raise ValueError('Either message_dict should have a value or provide a channel id and timestamp.')
         if message_dict is not None:
@@ -392,7 +379,7 @@ class SlackTools:
 
     def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
         """Collect channel history"""
-        self._log_debug(f'Getting channel history for channel {channel}.')
+        self.log.debug(f'Getting channel history for channel {channel}.')
         resp = self.bot.conversations_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
@@ -406,7 +393,8 @@ class SlackTools:
         Args:
             channel: str, the channel (e.g., "#channel")
             from_uid: str, the user id to filter on (no '<@' prefix)
-            after_date: datetime, the (inclusive) date after which to examine. cannot be used with other date filters
+            after_date: datetime, the (inclusive) date after which to examine.
+                    cannot be used with other date filters
             after_ts: datetime, after querying, will further filter messages based on specific timestamp here
             on_date: datetime, the date to filter on. cannot be used with other date filters
             during_m: datetime, the most month period to filter on.
@@ -418,7 +406,7 @@ class SlackTools:
 
         Notes: more on search modifiers here: https://slack.com/help/articles/202528808-Search-in-Slack
         """
-        self._log_debug(f'Beginning query build for message search.')
+        self.log.debug(f'Beginning query build for message search.')
         slack_date_fmt = '%m-%d-%Y'  # Slack has a specific format to adhere to when in the US lol
         # Begin building queries
         query = ''
@@ -440,7 +428,7 @@ class SlackTools:
             if has_pin:
                 query += f' has:pin'
 
-        self._log_debug(f'Sending query: {query}.')
+        self.log.debug(f'Sending query: {query}.')
         resp = None
         for attempt in range(3):
             resp = self.user.search_messages(
@@ -468,7 +456,7 @@ class SlackTools:
 
     def upload_file(self, channel: str, filepath: str, filename: str, is_url: bool = False, txt: str = ''):
         """Uploads the selected file to the given channel"""
-        self._log_debug(f'Attempting to upload file to {channel}.')
+        self.log.debug(f'Attempting to upload file to {channel}.')
         if is_url:
             file = requests.get(filepath)
             fbytes = BytesIO(file.content)
