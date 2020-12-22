@@ -1,10 +1,9 @@
 easylogger
 Flask>=1.1.2
-pandas==1.0.3
-pyee==7.0.1
+pandas==1.1.5
+pyee==8.1.0
 pygsheets==2.0.3.1
 pytest==5.4.3
-PyYAML==5.3.1
-requests>=2.20.0
-slackclient==2.7.0
+requests>=2.25.1
+slackclient==2.9.3
 tabulate==0.8.7
