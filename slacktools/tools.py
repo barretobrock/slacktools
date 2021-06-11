@@ -9,7 +9,7 @@ import pygsheets
 import requests
 from io import BytesIO
 import pandas as pd
-from typing import Union, List, Optional, Tuple
+from typing import Union, List, Optional, Tuple, Dict
 from tabulate import tabulate
 from asyncio import Future
 from slack import WebClient
@@ -19,6 +19,8 @@ from random import randint
 from datetime import datetime as dt
 from datetime import timedelta as tdelta
 from easylogger import Log
+from pykeepass import PyKeePass
+from pykeepass.entry import Entry
 
 
 class GSheetReader:
@@ -692,3 +694,38 @@ class SlackTools:
     def write_sheet(sheet_key: str, sheet_name: str, df: pd.DataFrame):
         gs = GSheetReader(sheet_key)
         gs.write_df_to_sheet(sheet_key, sheet_name, df)
+
+
+class SecretStore:
+    DATABASE_PATH = os.path.join(os.path.expanduser('~'), *['keys', 'secretprops.kdbx'])
+
+    def __init__(self, password: str):
+        self.db = None
+        # Read in the database
+        self.load_database(password)
+
+    def load_database(self, password: str):
+        self.db = PyKeePass(self.DATABASE_PATH, password=password)
+
+    def get_entry(self, entry_name: str) -> Entry:
+        return self.db.find_entries(title=entry_name, first=True)
+
+    def get_key(self, key_name: str) -> Dict:
+        entry = self.get_entry(key_name)
+        if entry is None:
+            return {}
+        if any([x is not None for x in [entry.username, entry.password]]):
+            resp = {
+                'un': entry.username,
+                'pw': entry.password
+            }
+        else:
+            resp = {}
+        resp.update(entry.custom_properties)
+        if len(entry.attachments) > 0:
+            for att in entry.attachments:
+                # For attachments, try to decode any that we might expect. For now, that's just JSON
+                if isinstance(att.data, bytes):
+                    # Decode to string, try loading as json
+                    resp[att.filename] = json.loads(att.data.decode('utf-8'))
+        return resp

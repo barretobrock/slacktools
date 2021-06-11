@@ -3,6 +3,7 @@ Flask>=1.1.2
 pandas
 pyee==8.1.0
 pygsheets
+pykeepass
 pytest
 requests>=2.25.1
 slackclient==2.9.3
