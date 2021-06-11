@@ -4,6 +4,7 @@ import re
 import traceback
 from datetime import datetime
 from typing import List, Union, Tuple, Optional, Callable
+from easylogger import Log
 from kavalkilu import DateTools
 from .tools import BlockKitBuilder, SlackTools
 
@@ -40,7 +41,8 @@ class SlackBotBase(SlackTools):
             cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
-        super().__init__(creds, log_name=log_name)
+        self._log = Log(log_name)
+        super().__init__(creds=creds, parent_log=self._log)
         self.debug = debug
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
@@ -87,7 +89,7 @@ class SlackBotBase(SlackTools):
         Returns:
             list of dict, Block Kit-ready help text
         """
-        self._log_debug(f'Building help block')
+        self._log.debug(f'Building help block')
         blocks = [
             self.bkb.make_block_section(intro, accessory=self.bkb.make_image_accessory(avi_url, avi_alt)),
             self.bkb.make_block_divider()
@@ -123,11 +125,11 @@ class SlackBotBase(SlackTools):
             if matches.group(1).lower() in self.triggers:
                 # Matched using abbreviated triggers
                 trigger = matches.group(1).lower()
-                self._log_debug(f'Matched on abbreviated trigger: {trigger}, msg: {message}')
+                self._log.debug(f'Matched on abbreviated trigger: {trigger}, msg: {message}')
             else:
                 # Matched using bot id
                 trigger = matches.group(2)
-                self._log_debug(f'Matched on bot id: {trigger}, msg: {message}')
+                self._log.debug(f'Matched on bot id: {trigger}, msg: {message}')
             message_txt = matches.group(3).lower().strip()
             raw_message = matches.group(3).strip()
             # self.log.debug('Message: {}'.format(message_txt))
@@ -167,7 +169,7 @@ class SlackBotBase(SlackTools):
                         ]
                         self.send_message(msg_packet['channel'], message='', blocks=blocks)
                     else:
-                        self._log_error(f'Exception occurred: {exception_msg}', e)
+                        self._log.error(f'Exception occurred: {exception_msg}', e)
                         self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
 
     def parse_slash_command(self, event_data: dict):
@@ -184,9 +186,10 @@ class SlackBotBase(SlackTools):
 
         if text != '':
             processed_cmd += f' {text}'
-        self._log_debug(f'Parsed slash command from {un}: {processed_cmd}')
+        self._log.debug(f'Parsed slash command from {un}: {processed_cmd}')
 
-        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user, 'raw_message': processed_cmd})
+        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user,
+                             'raw_message': processed_cmd})
 
     @staticmethod
     def parse_flags_from_command(message: str) -> dict:
@@ -307,7 +310,7 @@ class SlackBotBase(SlackTools):
     def get_prev_msg_in_channel(self, channel: str, timestamp: str,
                                 callable_list=None) -> Optional[Union[str, List[dict]]]:
         """Gets the previous message from the channel"""
-        self._log_debug(f'Getting previous message in channel {channel}')
+        self._log.debug(f'Getting previous message in channel {channel}')
         resp = self.bot.conversations_history(
             channel=channel,
             latest=timestamp,
