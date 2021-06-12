@@ -242,7 +242,7 @@ class BlockKitBuilder:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log, data_sheet_key: str):
+    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log):
         """
         Args:
             creds: dict, contains tokens & other secrets for connecting & interacting with Slack
@@ -256,8 +256,8 @@ class SlackTools:
             parent_log: the parent log to attach to.
         """
         self.log = Log(parent_log, child_name=self.__class__.__name__)
-        self.gsr = GSheetReader(sec_store=credstore, sheet_key=data_sheet_key)
         slack_creds = credstore.get_key_and_make_ns(slack_cred_name)
+        self.gsr = GSheetReader(sec_store=credstore, sheet_key=slack_creds.spreadsheet_key)
         self.team = slack_creds.team
         # Grab tokens
         self.xoxp_token = slack_creds.xoxp_token

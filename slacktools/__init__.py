@@ -4,7 +4,7 @@
 Slack Tools: A common library for working with Slack
 """
 from .slackbot import SlackBotBase
-from .tools import SlackTools, GSheetReader, BlockKitBuilder
+from .tools import SlackTools, GSheetReader, BlockKitBuilder, SecretStore
 from .events_fork import SlackEventAdapter
 
 from ._version import get_versions

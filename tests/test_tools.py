@@ -1,27 +1,19 @@
+import os
 import unittest
-from kavalkilu import Keys
-from slacktools.tools import SlackTools, BlockKitBuilder
+from easylogger import Log
+from slacktools.tools import SlackTools, BlockKitBuilder, SecretStore
 
 
 keys = {
     'viktor': {
-        'xoxp': 'kodubot-usertoken',
-        'xoxb': 'kodubot-useraccess',
-        'team': 'okr-name',
         'test_channel': 'CM376Q90F',
         'test_user': 'UM35HE6R5'
     },
     'cah': {
-        'xoxp': 'wizzy-token',
-        'xoxb': 'wizzy-bot-user-token',
-        'team': 'okr-name',
         'test_channel': 'CM376Q90F',
         'test_user': 'UM35HE6R5'
     },
     'dnd': {
-        'xoxp': 'dizzy-token',
-        'xoxb': 'dizzy-bot-user-token',
-        'team': 'dnd',
         'test_channel': 'CT48WCESG',
         'test_user': 'USS6FQ283'
     }
@@ -30,10 +22,18 @@ keys = {
 
 class TestSlackTools(unittest.TestCase):
     def setUp(self, bot='viktor') -> None:
-        get_key = Keys().get_key
+        # Read in the kdbx secret for unlocking the database
+        secretprops = {}
+        with open(os.path.abspath('../secretprops.properties'), 'r') as f:
+            contents = f.read().split('\n')
+            for item in contents:
+                key, value = item.split('=', 1)
+                secretprops[key] = value.strip()
+        slacktools_secret = secretprops['slacktools_secret']
+        credstore = SecretStore('secretprops-bobdev.kdbx', slacktools_secret)
+        _log = Log('slacktools-test', log_level_str='DEBUG')
+        self.st = SlackTools(credstore=credstore, slack_cred_name=bot, parent_log=_log)
         bot_dict = keys[bot]
-        self.st = SlackTools(team=get_key(bot_dict['team']),
-                             xoxp_token=get_key(bot_dict['xoxp']), xoxb_token=get_key(bot_dict['xoxb']))
         self.test_channel = bot_dict['test_channel']
         self.test_user = bot_dict['test_user']
         self.bkb = BlockKitBuilder()
@@ -56,7 +56,7 @@ class TestSlackTools(unittest.TestCase):
         block = [
             self.bkb.make_context_section('lol what context'),
             self.bkb.make_block_divider(),
-            self.bkb.make_block_section('testy test - best test is a zest of the west')
+            self.bkb.make_block_section('testy test - best test has a zest of the west')
         ]
         self.st.update_message(self.test_channel, ts, blocks=block)
 
