@@ -12,7 +12,7 @@ from .tools import BlockKitBuilder, SlackTools, SecretStore
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, log_name: str, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
-                 test_channel: str, commands: dict, data_sheet_key: str, cmd_categories: List[str],
+                 test_channel: str, commands: dict, cmd_categories: List[str],
                  debug: bool = False):
         """
         Args:
@@ -43,8 +43,7 @@ class SlackBotBase(SlackTools):
             debug: bool, if True, will provide additional info into exceptions
         """
         self._log = Log(log_name)
-        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, data_sheet_key=data_sheet_key,
-                         parent_log=self._log)
+        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log)
         self.debug = debug
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
