@@ -5,6 +5,7 @@ import re
 import time
 import json
 import string
+from types import SimpleNamespace
 import pygsheets
 import requests
 from io import BytesIO
@@ -23,12 +24,56 @@ from pykeepass import PyKeePass
 from pykeepass.entry import Entry
 
 
+class SecretStore:
+    KEY_DIR = os.path.join(os.path.expanduser('~'), 'keys')
+
+    def __init__(self, fname: str, password: str):
+        self.db = None
+        # Read in the database
+        self.load_database(fname, password)
+
+    def load_database(self, fname: str, password: str):
+        self.db = PyKeePass(os.path.join(self.KEY_DIR, fname), password=password)
+
+    def get_entry(self, entry_name: str) -> Entry:
+        return self.db.find_entries(title=entry_name, first=True)
+
+    def get_key(self, key_name: str) -> Dict:
+        entry = self.get_entry(key_name)
+        if entry is None:
+            return {}
+        if any([x is not None for x in [entry.username, entry.password]]):
+            resp = {
+                'un': entry.username,
+                'pw': entry.password
+            }
+        else:
+            resp = {}
+        resp.update(entry.custom_properties)
+        if len(entry.attachments) > 0:
+            for att in entry.attachments:
+                # For attachments, try to decode any that we might expect. For now, that's just JSON
+                if isinstance(att.data, bytes):
+                    # Decode to string, try loading as json
+                    try:
+                        file_contents = json.loads(att.data.decode('utf-8'))
+                        # Likely a dict
+                        for k, v in file_contents.items():
+                            resp[k.replace('-', '_')] = v
+                    except:
+                        resp[att.filename] = att.data.decode('utf-8')
+        return resp
+
+    def get_key_and_make_ns(self, entry: str) -> SimpleNamespace:
+        entry_dict = self.get_key(entry)
+        return SimpleNamespace(**entry_dict)
+
+
 class GSheetReader:
     """A class to help with reading in Google Sheets"""
-    def __init__(self, sheet_key: str):
-        with open(os.path.join(os.path.expanduser('~'), *['keys', 'GSHEET_READER'])) as f:
-            gsheets_creds = json.loads(f.read())
-        os.environ['GDRIVE_API_CREDENTIALS'] = json.dumps(gsheets_creds)
+    def __init__(self, sec_store: SecretStore, sheet_key: str):
+        creds = sec_store.get_key('gsheet-reader')
+        os.environ['GDRIVE_API_CREDENTIALS'] = json.dumps(creds)
         self.gc = pygsheets.authorize(service_account_env_var='GDRIVE_API_CREDENTIALS')
         self.sheets = self.gc.open_by_key(sheet_key).worksheets()
 
@@ -197,7 +242,7 @@ class BlockKitBuilder:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, creds: dict, parent_log: Log):
+    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log, data_sheet_key: str):
         """
         Args:
             creds: dict, contains tokens & other secrets for connecting & interacting with Slack
@@ -210,15 +255,14 @@ class SlackTools:
                         the realm of common API calls e.g., emoji uploads
             parent_log: the parent log to attach to.
         """
-        need_keys = ['team', 'xoxp-token', 'xoxb-token']
-        if not all([k in creds.keys() for k in need_keys]):
-            raise ValueError(f'These keys are missing: {",".join(k for k in need_keys if k not in creds.keys())}')
         self.log = Log(parent_log, child_name=self.__class__.__name__)
-        self.team = creds['team']
+        self.gsr = GSheetReader(sec_store=credstore, sheet_key=data_sheet_key)
+        slack_creds = credstore.get_key_and_make_ns(slack_cred_name)
+        self.team = slack_creds.team
         # Grab tokens
-        self.xoxp_token = creds['xoxp-token']
-        self.xoxb_token = creds['xoxb-token']
-        self.cookie = creds.get('cookie', '')
+        self.xoxp_token = slack_creds.xoxp_token
+        self.xoxb_token = slack_creds.xoxb_token
+        self.cookie = slack_creds.cookie
         self.bkb = BlockKitBuilder()
 
         self.user = WebClient(self.xoxp_token)
@@ -678,54 +722,15 @@ class SlackTools:
         done_phrase = ''.join(built_phrase)
         return done_phrase
 
-    @staticmethod
-    def read_in_sheets(sheet_key: str) -> dict:
-        """Reads in GSheets for Viktor"""
-        gs = GSheetReader(sheet_key)
-        sheets = gs.sheets
+    def read_in_sheets(self) -> dict:
+        """Reads in GSheets"""
+        sheets = self.gsr.sheets
         ws_dict = {}
         for sheet in sheets:
             ws_dict.update({
-                sheet.title: gs.get_sheet(sheet.title)
+                sheet.title: self.gsr.get_sheet(sheet.title)
             })
         return ws_dict
 
-    @staticmethod
-    def write_sheet(sheet_key: str, sheet_name: str, df: pd.DataFrame):
-        gs = GSheetReader(sheet_key)
-        gs.write_df_to_sheet(sheet_key, sheet_name, df)
-
-
-class SecretStore:
-    DATABASE_PATH = os.path.join(os.path.expanduser('~'), *['keys', 'secretprops.kdbx'])
-
-    def __init__(self, password: str):
-        self.db = None
-        # Read in the database
-        self.load_database(password)
-
-    def load_database(self, password: str):
-        self.db = PyKeePass(self.DATABASE_PATH, password=password)
-
-    def get_entry(self, entry_name: str) -> Entry:
-        return self.db.find_entries(title=entry_name, first=True)
-
-    def get_key(self, key_name: str) -> Dict:
-        entry = self.get_entry(key_name)
-        if entry is None:
-            return {}
-        if any([x is not None for x in [entry.username, entry.password]]):
-            resp = {
-                'un': entry.username,
-                'pw': entry.password
-            }
-        else:
-            resp = {}
-        resp.update(entry.custom_properties)
-        if len(entry.attachments) > 0:
-            for att in entry.attachments:
-                # For attachments, try to decode any that we might expect. For now, that's just JSON
-                if isinstance(att.data, bytes):
-                    # Decode to string, try loading as json
-                    resp[att.filename] = json.loads(att.data.decode('utf-8'))
-        return resp
+    def write_sheet(self, sheet_key: str, sheet_name: str, df: pd.DataFrame):
+        self.gsr.write_df_to_sheet(sheet_key, sheet_name, df)

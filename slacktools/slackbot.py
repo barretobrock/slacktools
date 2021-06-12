@@ -6,19 +6,20 @@ from datetime import datetime
 from typing import List, Union, Tuple, Optional, Callable
 from easylogger import Log
 from kavalkilu import DateTools
-from .tools import BlockKitBuilder, SlackTools
+from .tools import BlockKitBuilder, SlackTools, SecretStore
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, log_name: str, triggers: List[str], creds: dict, test_channel: str, commands: dict,
-                 cmd_categories: List[str], debug: bool = False):
+    def __init__(self, log_name: str, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
+                 test_channel: str, commands: dict, data_sheet_key: str, cmd_categories: List[str],
+                 debug: bool = False):
         """
         Args:
             log_name: str, log name of kavalkilu.Log object for logging special events
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
-            creds: dict, contains tokens & other secrets for connecting & interacting with Slack
+            credstore: SimpleNamespace, contains tokens & other secrets for connecting & interacting with Slack
                 required keys:
                     team: str, the Slack workspace name
                     xoxp-token: str, the user token
@@ -42,7 +43,8 @@ class SlackBotBase(SlackTools):
             debug: bool, if True, will provide additional info into exceptions
         """
         self._log = Log(log_name)
-        super().__init__(creds=creds, parent_log=self._log)
+        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, data_sheet_key=data_sheet_key,
+                         parent_log=self._log)
         self.debug = debug
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
