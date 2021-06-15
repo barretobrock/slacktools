@@ -49,7 +49,6 @@ class SecretStore:
             }
         else:
             resp = {}
-        resp.update(entry.custom_properties)
         if len(entry.attachments) > 0:
             for att in entry.attachments:
                 # For attachments, try to decode any that we might expect. For now, that's just JSON
@@ -57,16 +56,18 @@ class SecretStore:
                     # Decode to string, try loading as json
                     try:
                         file_contents = json.loads(att.data.decode('utf-8'))
-                        # Likely a dict
-                        for k, v in file_contents.items():
-                            resp[k.replace('-', '_')] = v
+                        resp.update(file_contents)
                     except:
                         resp[att.filename] = att.data.decode('utf-8')
+        resp.update(entry.custom_properties)
         return resp
 
     def get_key_and_make_ns(self, entry: str) -> SimpleNamespace:
         entry_dict = self.get_key(entry)
-        return SimpleNamespace(**entry_dict)
+        processed_dict = {}
+        for k, v in entry_dict.items():
+            processed_dict[k.replace('-', '_')] = v
+        return SimpleNamespace(**processed_dict)
 
 
 class GSheetReader:
