@@ -269,7 +269,7 @@ class SlackTools:
         try:
             sheet_key = slack_creds.spreadsheet_key
             self.gsr = GSheetReader(sec_store=credstore, sheet_key=sheet_key)
-        except AssertionError:
+        except AttributeError:
             self.gsr = None
         self.team = slack_creds.team
         # Grab tokens
