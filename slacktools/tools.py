@@ -26,9 +26,16 @@ from pykeepass.entry import Entry
 
 class SecretStore:
     KEY_DIR = os.path.join(os.path.expanduser('~'), 'keys')
+    DEFAULT_FILE_NAME = 'secretprops.kdbx'
+    DEFAULT_PASSWORD_FILE = 'SECRETPROP'
 
-    def __init__(self, fname: str, password: str):
+    def __init__(self, fname: str = DEFAULT_FILE_NAME, password: str = None,
+                 password_fname: str = DEFAULT_PASSWORD_FILE):
         self.db = None
+
+        if password_fname is not None and password is None:
+            with open(os.path.join(self.KEY_DIR, password_fname)) as f:
+                password = f.read().strip()
         # Read in the database
         self.load_database(fname, password)
 
