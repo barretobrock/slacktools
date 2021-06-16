@@ -275,7 +275,11 @@ class SlackTools:
         # Grab tokens
         self.xoxp_token = slack_creds.xoxp_token
         self.xoxb_token = slack_creds.xoxb_token
-        self.cookie = slack_creds.cookie
+        try:
+            self.cookie = slack_creds.cookie
+        except AttributeError:
+            self.cookie = ''
+
         self.bkb = BlockKitBuilder()
 
         self.user = WebClient(self.xoxp_token)
