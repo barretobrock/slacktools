@@ -1,39 +1,16 @@
-import os
 import unittest
 from easylogger import Log
 from slacktools.tools import SlackTools, BlockKitBuilder, SecretStore
-
-
-keys = {
-    'viktor': {
-        'test_channel': 'CM376Q90F',
-        'test_user': 'UM35HE6R5'
-    },
-    'cah': {
-        'test_channel': 'CM376Q90F',
-        'test_user': 'UM35HE6R5'
-    },
-    'dnd': {
-        'test_channel': 'CT48WCESG',
-        'test_user': 'USS6FQ283'
-    }
-}
+from .mocks.slack_settings import settings
 
 
 class TestSlackTools(unittest.TestCase):
     def setUp(self, bot='viktor') -> None:
-        # Read in the kdbx secret for unlocking the database
-        secretprops = {}
-        with open(os.path.abspath('../secretprops.properties'), 'r') as f:
-            contents = f.read().split('\n')
-            for item in contents:
-                key, value = item.split('=', 1)
-                secretprops[key] = value.strip()
-        slacktools_secret = secretprops['slacktools_secret']
-        credstore = SecretStore('secretprops-bobdev.kdbx', slacktools_secret)
+        # Read in the kdbx of secrets
+        credstore = SecretStore('secretprops-bobdev.kdbx')
         _log = Log('slacktools-test', log_level_str='DEBUG')
         self.st = SlackTools(credstore=credstore, slack_cred_name=bot, parent_log=_log)
-        bot_dict = keys[bot]
+        bot_dict = settings [bot]
         self.test_channel = bot_dict['test_channel']
         self.test_user = bot_dict['test_user']
         self.bkb = BlockKitBuilder()

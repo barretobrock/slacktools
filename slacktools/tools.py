@@ -108,7 +108,7 @@ class SlackTools:
     def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log):
         """
         Args:
-            creds: dict, contains tokens & other secrets for connecting & interacting with Slack
+            credstore: SecretStore, contains tokens & other secrets for connecting & interacting with Slack
                 required keys:
                     team: str, the Slack workspace name
                     xoxp-token: str, the user token
@@ -141,7 +141,7 @@ class SlackTools:
         self.bot = WebClient(self.xoxb_token)
         # Test API calls to the bot
         self.bot_id = self.bot.auth_test()
-        self.session = self._init_session() if self.cookie != '' else None
+        self.session = self._init_session() if self.cookie != '' else None  # type: requests.Session
 
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
@@ -240,6 +240,12 @@ class SlackTools:
                 user_info.append(resp['user'])
         return user_info
 
+    def open_dialog(self, dialog: Dict, trigger_id: str, **kwargs):
+        """Open a dialog with a user by passing in a trigger id received from another interaction"""
+        resp = self.bot.dialog_open(dialog=dialog, trigger_id=trigger_id, **kwargs)
+        # Check response for exception
+        self._check_for_exception(resp)
+
     def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
                                 **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
@@ -266,7 +272,8 @@ class SlackTools:
             # Return the timestamp from the message
             return dm_chan, ts
 
-    def send_message(self, channel: str, message: str, ret_ts: bool = False, **kwargs) -> Optional[str]:
+    def send_message(self, channel: str, message: str, ret_ts: bool = False, ret_all: bool = False,
+                     **kwargs) -> Optional[Union[str, SlackResponse]]:
         """Sends a message to the specific channel"""
         self.log.debug(f'Sending channel message in {channel}.')
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
@@ -274,6 +281,8 @@ class SlackTools:
         if ret_ts:
             # Return the timestamp from the message
             return resp['ts']
+        if ret_all:
+            return resp
 
     def update_message(self, channel: str, ts: str, message: str = None, blocks: List[dict] = None):
         """Updates a message"""
