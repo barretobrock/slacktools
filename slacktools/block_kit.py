@@ -271,6 +271,77 @@ class BlockKitSelect(BlockKitBase):
         }
 
 
+class BlockKitDialog(BlockKitBase):
+    @classmethod
+    def make_dialog(cls, title: str, state: str, callback_id: str, elements_list: List[Dict],
+                    submit_label: str = 'Submit') -> Dict[str, Union[str, Dict, List]]:
+        """Generates a menu dialog"""
+        return {
+            'title': title,
+            'callback_id': callback_id,
+            'submit_label': submit_label,
+            'state': state,
+            'elements': elements_list
+        }
+
+    @classmethod
+    def make_text_element(cls, label: str, name: str, subtype: str, placeholder: str) -> Dict[str, str]:
+        """Makes a text element for dialogs"""
+        return {
+            'label': label,
+            'name': name,
+            'type': 'text',
+            'subtype': subtype,
+            'placeholder': placeholder
+        }
+
+    @classmethod
+    def make_number_element(cls, label: str, name: str, placeholder: str):
+        cls.make_text_element(label=label, name=name, placeholder=placeholder, subtype='number')
+
+    @classmethod
+    def make_email_element(cls, label: str, name: str, placeholder: str):
+        cls.make_text_element(label=label, name=name, placeholder=placeholder, subtype='email')
+
+    @classmethod
+    def make_url_element(cls, label: str, name: str, placeholder: str):
+        cls.make_text_element(label=label, name=name, placeholder=placeholder, subtype='url')
+
+    @classmethod
+    def make_textarea_element(cls, label: str, name: str, placeholder: str) -> Dict[str, str]:
+        """Makes a textarea element for dialogs"""
+        return {
+            'label': label,
+            'name': name,
+            'type': 'textarea',
+            'hint': placeholder
+        }
+
+    @classmethod
+    def make_select_element(cls, label: str, name: str, options_list: List[Dict[str, str]],
+                            data_source: str = None) -> Dict[str, str]:
+        """Makes a select element for dialogs
+        Args:
+            label:
+            name:
+            options_list:
+                expected_keys:
+                    label
+                    value
+            data_source:
+        """
+        select_dict = {
+            'label': label,
+            'name': name,
+            'type': 'select',
+            'options': options_list
+        }
+        if data_source is not None:
+            select_dict['data_source'] = data_source
+
+        return select_dict
+
+
 class BlockKitMenu(BlockKitBase):
     @classmethod
     def make_input_form(cls, title: str, submit_btn: str, input_objs: List[Dict[str, Dict]]) -> Dict:
@@ -324,6 +395,6 @@ class BlockKitMenu(BlockKitBase):
         ]
 
 
-class BlockKitBuilder(BlockKitText, BlockKitButtons, BlockKitSelect, BlockKitMenu):
+class BlockKitBuilder(BlockKitText, BlockKitButtons, BlockKitSelect, BlockKitMenu, BlockKitDialog):
     """Helper class to build out Block Kit things"""
     pass
