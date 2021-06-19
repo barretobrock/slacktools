@@ -318,7 +318,7 @@ class BlockKitDialog(BlockKitBase):
         }
 
     @classmethod
-    def make_select_element(cls, label: str, name: str, options_list: List[Dict[str, str]],
+    def make_select_element(cls, label: str, name: str, options_list: List[Dict[str, str]] = None,
                             data_source: str = None) -> Dict[str, str]:
         """Makes a select element for dialogs
         Args:
@@ -333,11 +333,12 @@ class BlockKitDialog(BlockKitBase):
         select_dict = {
             'label': label,
             'name': name,
-            'type': 'select',
-            'options': options_list
+            'type': 'select'
         }
         if data_source is not None:
             select_dict['data_source'] = data_source
+        else:
+            select_dict['options'] = options_list
 
         return select_dict
 
