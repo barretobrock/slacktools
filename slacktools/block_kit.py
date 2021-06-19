@@ -101,8 +101,8 @@ class BlockKitButtons(BlockKitBase):
     """Block Kit methods for building out buttons"""
 
     @classmethod
-    def make_radio_buttons(cls, txt_obj: Union[str, List[str]], label: str = 'Label',
-                           name: str = 'radio-value') -> Dict:
+    def make_radio_buttons(cls, txt_obj: Union[str, List[str]], label: str = 'Label', name: str = 'radio-value',
+                           action_id: str = 'radio_buttons-action') -> Dict:
         """Generates a group of radio buttons"""
         if isinstance(txt_obj, str):
             option_list = [{'text': cls._plaintext_section(txt_obj), 'value': f'{name}-0'}]
@@ -114,14 +114,14 @@ class BlockKitButtons(BlockKitBase):
             'element': {
                 'type': 'radio_buttons',
                 'options': option_list,
-                'action_id': 'radio_buttons-action'
+                'action_id': action_id
             },
             'label': cls._plaintext_section(label)
         }
 
     @classmethod
-    def make_link_button(cls, label: str, url: str, btn_txt: str = 'Click Me', value: str = 'btn_value_0') -> \
-            Dict[str, Union[str, Dict]]:
+    def make_link_button(cls, label: str, url: str, btn_txt: str = 'Click Me', value: str = 'btn_value_0',
+                         action_id: str = 'link-button-action') -> Dict[str, Union[str, Dict]]:
         """Makes a link rendered as a button"""
         return {
             'type': 'section',
@@ -131,7 +131,7 @@ class BlockKitButtons(BlockKitBase):
                 'text': cls._plaintext_section(btn_txt),
                 'value': value,
                 'url': url,
-                'action_id': 'link-button-action'
+                'action_id': action_id
             }
         }
 
@@ -175,7 +175,8 @@ class BlockKitButtons(BlockKitBase):
         }
 
     @classmethod
-    def make_action_button_group(cls, button_list: List[dict]) -> Dict[str, Union[str, List[Dict[str, str]]]]:
+    def make_action_button_group(cls, button_list: List[dict], action_id: str = 'action-button') -> \
+            Dict[str, Union[str, List[Dict[str, str]]]]:
         """Takes in a list of dicts containing button text & value,
         returns a dictionary that renders the entire set of buttons together
 
@@ -183,10 +184,11 @@ class BlockKitButtons(BlockKitBase):
             button_list: list of dict, expected keys:
                 txt: the button text
                 value: the value attached to the button
+            action_id
         """
         return {
             'type': 'actions',
-            'elements': [cls.make_action_button(x['txt'], x['value'], action_id=f'action-button-{i}')
+            'elements': [cls.make_action_button(x['txt'], x['value'], action_id=f'{action_id}-{i}')
                          for i, x in enumerate(button_list)]
         }
 
@@ -196,7 +198,8 @@ class BlockKitSelect(BlockKitBase):
 
     @classmethod
     def make_static_select(cls, label: str, option_list: List[Dict[str, str]],
-                           placeholder_txt: str = 'Select an item') -> Dict[str, Union[str, Dict]]:
+                           placeholder_txt: str = 'Select an item', action_id: str = 'static_select-action') -> \
+            Dict[str, Union[str, Dict]]:
         """Generates a single item selection dropdown
         Args:
             label: str, describes what is being selected
@@ -205,6 +208,7 @@ class BlockKitSelect(BlockKitBase):
                 expected keys:
                     txt: option text
                     value: the value to apply to this option (returned in API)
+            action_id: str, an id to attribute to this element
         """
         return {
             'type': 'section',
@@ -215,13 +219,14 @@ class BlockKitSelect(BlockKitBase):
                 'options': [
                     {'text': cls._plaintext_section(x['txt']), 'value': x['value']} for x in option_list
                 ],
-                'action_id': 'static_select-action'
+                'action_id': action_id
             }
         }
 
     @classmethod
     def make_block_multiselect(cls, desc: str, btn_txt: str, option_list: List[Dict[str, str]],
-                               max_selected_items: int = None) -> Dict[str, Union[str, int, Dict]]:
+                               action_id: str = 'multi_users_select-action', max_selected_items: int = None)\
+            -> Dict[str, Union[str, int, Dict]]:
         """Returns a dict that renders a multi select form in Slack's Block Kit
         Args:
             desc: str, the markdown-supported text that describes what's being selected
@@ -230,6 +235,7 @@ class BlockKitSelect(BlockKitBase):
                 expected keys:
                     txt: option text
                     value: the value to apply to this option (returned in API)
+            action_id:
             max_selected_items: int, if included, will establish a limit to the max number
                 of selected items in the multiselect
         """
@@ -248,7 +254,8 @@ class BlockKitSelect(BlockKitBase):
         ms_accessory = {
             'type': 'multi_static_select',
             'placeholder': cls._plaintext_section(text=btn_txt),
-            'options': options
+            'options': options,
+            'action_id': action_id
         }
 
         if max_selected_items is not None:
@@ -257,17 +264,35 @@ class BlockKitSelect(BlockKitBase):
         return multiselect_dict
 
     @classmethod
-    def make_multi_user_select(cls, label: str = 'Label', placeholder_txt: str = 'Select users') -> \
+    def make_multi_user_select(cls, label: str = 'Label', placeholder_txt: str = 'Select users',
+                               initial_users: List[str] = None, action_id: str = 'multi_users_select-action',
+                               confirm: Dict[str, Dict[str, str]] = None) -> \
             Dict[str, Union[str, Dict]]:
         """Generates a multi-user select object"""
-        return {
-            'type': 'input',
-            'element': {
+        ms_accessory = {
                 'type': 'multi_users_select',
                 'placeholder': cls._plaintext_section(placeholder_txt),
-                'action_id': 'multi_users_select-action'
-            },
-            'label': cls._plaintext_section(label)
+                'action_id': action_id,
+                'initial_users': [] if initial_users is None else initial_users
+            }
+        if confirm is not None:
+            ms_accessory['confirm'] = confirm
+        multi_user_select = {
+            'type': 'section',
+            'text': cls._markdown_section(label),
+            'accessory': ms_accessory
+        }
+        return multi_user_select
+
+    @classmethod
+    def make_confirm_object(cls, title: str, text: str, confirm_txt: str = 'Confirm', deny_txt: str = 'Cancel') \
+            -> Dict[str, Dict[str, str]]:
+        """Generates a confirmation object to be passed into the 'accessory' level of another UI object"""
+        return {
+            'title': cls._plaintext_section(title),
+            'text': cls._markdown_section(text),
+            'confirm': cls._plaintext_section(confirm_txt),
+            'deny': cls._plaintext_section(deny_txt)
         }
 
 
@@ -319,7 +344,7 @@ class BlockKitDialog(BlockKitBase):
 
     @classmethod
     def make_select_element(cls, label: str, name: str, options_list: List[Dict[str, str]] = None,
-                            data_source: str = None) -> Dict[str, str]:
+                            data_source: str = None, optional: bool = False) -> Dict[str, str]:
         """Makes a select element for dialogs
         Args:
             label:
@@ -329,11 +354,13 @@ class BlockKitDialog(BlockKitBase):
                     label
                     value
             data_source:
+            optional:
         """
         select_dict = {
             'label': label,
             'name': name,
-            'type': 'select'
+            'type': 'select',
+            'optional': optional
         }
         if data_source is not None:
             select_dict['data_source'] = data_source
