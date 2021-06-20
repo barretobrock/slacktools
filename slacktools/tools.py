@@ -23,6 +23,7 @@ from easylogger import Log
 from pykeepass import PyKeePass
 from pykeepass.entry import Entry
 from .block_kit import BlockKitBuilder
+from .slacksession import SlackSession
 
 
 class SecretStore:
@@ -105,7 +106,7 @@ class GSheetReader:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log):
+    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log, use_session: bool = False):
         """
         Args:
             credstore: SecretStore, contains tokens & other secrets for connecting & interacting with Slack
@@ -117,6 +118,7 @@ class SlackTools:
                     cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
             parent_log: the parent log to attach to.
+            use_session: enable when looking to do things like upload new emojis
         """
         self.log = Log(parent_log, child_name=self.__class__.__name__)
         slack_creds = credstore.get_key_and_make_ns(slack_cred_name)
@@ -141,7 +143,8 @@ class SlackTools:
         self.bot = WebClient(self.xoxb_token)
         # Test API calls to the bot
         self.bot_id = self.bot.auth_test()
-        self.session = self._init_session() if self.cookie != '' else None  # type: requests.Session
+
+        self.session = SlackSession(self.team, self.cookie, parent_log=self.log) if use_session else None
 
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
@@ -151,18 +154,6 @@ class SlackTools:
             # IDs are stored as uppercase. This will help with matching
             return match.group(1).upper()
         return None
-
-    def _init_session(self) -> requests.Session:
-        """Initialises a session for use with special API calls not allowed through the python package"""
-        base_url = 'https://{}.slack.com'.format(self.team)
-
-        session = requests.session()
-        session.headers = {'Cookie': self.cookie}
-        session.url_customize = '{}/customize/emoji'.format(base_url)
-        session.url_add = '{}/api/emoji.add'.format(base_url)
-        session.url_list = '{}/api/emoji.adminList'.format(base_url)
-        session.api_token = self.xoxp_token
-        return session
 
     @staticmethod
     def _check_for_exception(response: Union[Future, SlackResponse]):
@@ -402,99 +393,6 @@ class SlackTools:
     def df_to_slack_table(df: pd.DataFrame) -> str:
         """Takes in a dataframe, outputs a string formatted for Slack"""
         return tabulate(df, headers='keys', tablefmt='github', showindex='never')
-
-    def _upload_emoji(self, filepath: str) -> bool:
-        """Uploads an emoji to the workspace
-        NOTE: The name of the emoji is taken from the filepath
-        """
-        if self.session is None:
-            raise Exception('Cannot initialize session. Session not established due to lack of cookie.')
-        filename = os.path.split(filepath)[1]
-        emoji_name = os.path.splitext(filename)[0]
-        data = {
-            'mode': 'data',
-            'name': emoji_name,
-            'token': self.session.api_token
-        }
-        files = {'image': open(filepath, 'rb')}
-        r = self.session.post(self.session.url_add, data=data, files=files, allow_redirects=False)
-        r.raise_for_status()
-
-        # Slack returns 200 OK even if upload fails, so check for status.
-        response_json = r.json()
-        if not response_json['ok']:
-            print(f"Error with uploading {emoji_name}: {response_json}")
-        return response_json['ok']
-
-    def upload_emojis(self, upload_dir: str, wait_s: int = 5, announce_channel: str = None) -> Optional[str]:
-        """Uploads any .jpg .png .gif files in a given directory,
-            Announces uploads to channel, if announce=True
-
-        Methods
-             - Scan in files from directory
-             - clean emoji name from file path
-             - build dict: key = emoji name, value = filepath
-        """
-        existing_emojis = [k for k, v in self.get_emojis().items()]
-
-        emoji_dict = {}
-        for file in os.listdir(upload_dir):
-            file_split = os.path.splitext(file)
-            if file_split[1] in ['.png', '.jpg', '.gif']:
-                filepath = os.path.join(upload_dir, file)
-                emoji_name = file_split[0]
-                if emoji_name not in existing_emojis:
-                    emoji_dict[emoji_name] = filepath
-
-        successfully_uploaded = []
-        for k, v in emoji_dict.items():
-            if k in successfully_uploaded:
-                continue
-            successful = self._upload_emoji(v)
-            if successful:
-                successfully_uploaded.append(k)
-            # Wait
-            print(':{}: successful - {:.2%} done'.format(k, len(successfully_uploaded) / len(emoji_dict)))
-            time.sleep(wait_s)
-
-        if announce_channel is not None:
-            # Report the emojis captured to the channel
-            # 30 emojis per line, 5 lines per post
-            out_str = '\n'
-            cnt = 0
-            for item in successfully_uploaded:
-                out_str += ':{}:'.format(item)
-                cnt += 1
-                if cnt % 30 == 0:
-                    out_str += '\n'
-                if cnt == 150:
-                    self.send_message(announce_channel, out_str)
-                    out_str = '\n'
-                    cnt = 0
-            if cnt > 0:
-                self.send_message(announce_channel, out_str)
-            return out_str
-        return None
-
-    @staticmethod
-    def download_emojis(emoji_dict: dict, download_dir: str):
-        """Downloads a dict of emojis
-        NOTE: key = emoji name, value = url or data
-        """
-        for k, v in emoji_dict.items():
-            if v[:4] == 'data':
-                data = v
-            elif v[:4] == 'http':
-                r = requests.get(v)
-                data = r.content
-            else:
-                continue
-            # Write pic to file
-            fname = '{}{}'.format(k, os.path.splitext(v)[1])
-            fpath = os.path.join(download_dir, fname)
-            write = 'wb' if isinstance(data, bytes) else 'w'
-            with open(fpath, write) as f:
-                f.write(data)
 
     @staticmethod
     def _exact_match_emojis(emoji_dict: dict, exact_match_list: List[str]) -> dict:
