@@ -105,7 +105,7 @@ class BlockKitText(BlockKitBase):
         }
 
     @classmethod
-    def make_block_section(cls, obj: Union[str, list], join_str: str = '\n', accessory: BaseDict = None) ->\
+    def make_block_section(cls, obj: Union[str, list], join_str: str = '\n', accessory: NestedDict = None) ->\
             NestedDict:
         """Returns a Block Kit dictionary containing the markdown-supported text
         Args:
