@@ -196,13 +196,17 @@ class BlockKitButtons(BlockKitBase):
 
     @classmethod
     def make_section_button(cls, label: str, url: str = None, btn_txt: str = 'Click Me',
-                            value: str = 'btn_value_0', action_id: str = 'link-button-action') -> NestedDict:
+                            value: str = 'btn_value_0', action_id: str = 'link-button-action',
+                            danger_style: bool = None, incl_confirm: bool = None, confirm_title: str = None,
+                            confirm_text: str = None, ok_text: str = None, deny_text: str = None) -> NestedDict:
         """Makes a button that takes up a section. When a link is included, it's opened on button click"""
         return {
             'type': 'section',
             'text': cls.markdown_section(label),
-            'accessory': cls.build_accessory_section(accessory_type='button', text=btn_txt, value=value,
-                                                     action_id=action_id, url=url)
+            'accessory': cls.make_action_button(btn_txt=btn_txt, value=value, action_id=action_id,
+                                                danger_style=danger_style, incl_confirm=incl_confirm,
+                                                confirm_title=confirm_title, confirm_text=confirm_text,
+                                                ok_text=ok_text, deny_text=deny_text, url=url)
         }
 
     @classmethod
