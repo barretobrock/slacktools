@@ -206,22 +206,29 @@ class BlockKitButtons(BlockKitBase):
         }
 
     @classmethod
-    def make_action_button(cls, btn_txt: str, value: str, action_id: str) -> NestedBlock:
+    def make_action_button(cls, btn_txt: str, value: str, action_id: str, danger_style: bool = None,
+                           incl_confirm: bool = False, confirm_title: str = None, confirm_text: str = None,
+                           ok_text: str = None, deny_text: str = None, url: str = None) -> NestedDict:
         """Returns a dict that renders an action button (standalone button) in Slack's Block Kit"""
-        return {
-            'type': 'actions',
-            'elements': [
-                {
-                    'type': 'button',
-                    'text': cls.plaintext_section(text=btn_txt),
-                    'value': value,
-                    'action_id': action_id
-                }
-            ]
+        btn_obj = {
+            'type': 'button',
+            'text': cls.plaintext_section(text=btn_txt),
+            'value': value,
+            'action_id': action_id
         }
+        if danger_style is not None:
+            btn_obj['style'] = 'danger' if danger_style else 'primary'
+        if incl_confirm:
+            # Add in a confirm level
+            btn_obj['confirm'] = cls.make_confirm_object(title=confirm_title, text=confirm_text,
+                                                         confirm_txt=ok_text, deny_txt=deny_text)
+        if url is not None:
+            btn_obj['url'] = url
+
+        return btn_obj
 
     @classmethod
-    def make_action_button_group(cls, button_list: List[dict], action_id: str = 'action-button') -> \
+    def make_action_button_group(cls, button_list: ListOfNestedDicts) -> \
             NestedBlock:
         """Takes in a list of dicts containing button text & value,
         returns a dictionary that renders the entire set of buttons together
@@ -230,12 +237,10 @@ class BlockKitButtons(BlockKitBase):
             button_list: list of dict, expected keys:
                 txt: the button text
                 value: the value attached to the button
-            action_id
         """
         return {
             'type': 'actions',
-            'elements': [cls.make_action_button(x['txt'], x['value'], action_id=f'{action_id}-{i}')
-                         for i, x in enumerate(button_list)]
+            'elements': button_list
         }
 
 
@@ -449,53 +454,6 @@ class BlockKitMenu(BlockKitBase):
             'type': 'modal',
             'blocks': input_objs
         }
-
-    @classmethod
-    def make_menu_option(cls, name: str, text: str, value: str, danger_style: bool = None, url: str = None,
-                         incl_confirm: bool = False, confirm_title: str = None, confirm_text: str = None,
-                         ok_text: str = None, dismiss_text: str = None) -> Dict[str, Union[str, Dict]]:
-        """Generates a single menu button option
-        """
-        # TODO: Deprecate
-        option = {
-            'name': name,
-            'text': text,
-            'type': 'button',
-            'value': value
-        }
-        if incl_confirm:
-            # Add in a confirm level
-            option['confirm'] = {
-                'title': confirm_title,
-                'text': confirm_text,
-                'ok_text': ok_text,
-                'dismiss_text': dismiss_text
-            }
-        if danger_style is not None:
-            option['style'] = 'primary' if not danger_style else 'danger'
-        if url is not None:
-            option['url'] = url
-
-        return option
-
-    @classmethod
-    def make_message_menu_attachment(cls, title: str, menu_options: List[Dict[str, str]],
-                                     fallback: str, callback_id: str, color: str = '#3AA3E3') -> \
-            List[Dict[str, Union[str, List, Dict]]]:
-        """Generates a multi-button menu to be displayed inside a message
-        NB! This should be passed in to the 'attachments' parameter in send_message
-        """
-        # TODO: Deprecate
-        return [
-            {
-                'text': title,
-                'fallback': fallback,
-                'callback_id': callback_id,
-                'color': color,
-                'attachment_type': 'default',
-                'actions': menu_options
-            }
-        ]
 
 
 class BlockKitBuilder(BlockKitText, BlockKitButtons, BlockKitSelect, BlockKitMenu, BlockKitDialog):
