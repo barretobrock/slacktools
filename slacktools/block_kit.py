@@ -4,7 +4,7 @@ from typing import Union, List, Dict, Iterable
 # Types
 BaseDict = Dict[str, Union[str, bool]]
 ListOfDicts = List[BaseDict]
-NestedDict = Dict[str, BaseDict]
+NestedDict = Dict[str, Union[BaseDict, Iterable['BaseDict']]]
 ListOfNestedDicts = List[NestedDict]
 NestedBlock = Dict[str, Union[str, List[Iterable['NestedBlock']], Iterable['NestedBlock']]]
 
