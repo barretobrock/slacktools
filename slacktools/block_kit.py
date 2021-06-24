@@ -80,6 +80,18 @@ class BlockKitBase:
         """Generates a link into slack's expected format"""
         return f'<{url}|{text}'
 
+    @classmethod
+    def make_confirm_object(cls, title: str = 'Are you sure?', text: str = 'Are you sure you want to do this?',
+                            confirm_txt: str = 'Confirm', deny_txt: str = 'Cancel') \
+            -> NestedDict:
+        """Generates a confirmation object to be passed into the 'accessory' level of another UI object"""
+        return {
+            'title': cls.plaintext_section(title),
+            'text': cls.markdown_section(text),
+            'confirm': cls.plaintext_section(confirm_txt),
+            'deny': cls.plaintext_section(deny_txt)
+        }
+
 
 class BlockKitText(BlockKitBase):
     """Block Kit methods for building out text objects"""
@@ -191,30 +203,6 @@ class BlockKitButtons(BlockKitBase):
             'text': cls.markdown_section(label),
             'accessory': cls.build_accessory_section(accessory_type='button', text=btn_txt, value=value,
                                                      action_id=action_id, url=url)
-        }
-
-    @classmethod
-    def make_block_button(cls, btn_txt: str, value: str) -> Dict[str, str]:
-        """Returns a dict that renders a block button (button in a section) in Slack's Block Kit"""
-        return {
-            'type': 'button',
-            'text': cls.plaintext_section(text=btn_txt),
-            'value': value
-        }
-
-    @classmethod
-    def make_block_button_group(cls, button_list: List[dict]) -> NestedBlock:
-        """Takes in a list of dicts containing button text & value,
-        returns a dictionary that renders the entire set of buttons together
-
-        Args:
-            button_list: list of dict, expected keys:
-                txt: the button text
-                value: the value attached to the button
-        """
-        return {
-            'type': 'actions',
-            'elements': [cls.make_block_button(x['txt'], x['value']) for x in button_list]
         }
 
     @classmethod
@@ -376,17 +364,6 @@ class BlockKitSelect(BlockKitBase):
         }
         return multi_user_select
 
-    @classmethod
-    def make_confirm_object(cls, title: str, text: str, confirm_txt: str = 'Confirm', deny_txt: str = 'Cancel') \
-            -> Dict[str, Dict[str, str]]:
-        """Generates a confirmation object to be passed into the 'accessory' level of another UI object"""
-        return {
-            'title': cls.plaintext_section(title),
-            'text': cls.markdown_section(text),
-            'confirm': cls.plaintext_section(confirm_txt),
-            'deny': cls.plaintext_section(deny_txt)
-        }
-
 
 class BlockKitDialog(BlockKitBase):
     @classmethod
@@ -479,6 +456,7 @@ class BlockKitMenu(BlockKitBase):
                          ok_text: str = None, dismiss_text: str = None) -> Dict[str, Union[str, Dict]]:
         """Generates a single menu button option
         """
+        # TODO: Deprecate
         option = {
             'name': name,
             'text': text,
@@ -507,6 +485,7 @@ class BlockKitMenu(BlockKitBase):
         """Generates a multi-button menu to be displayed inside a message
         NB! This should be passed in to the 'attachments' parameter in send_message
         """
+        # TODO: Deprecate
         return [
             {
                 'text': title,
