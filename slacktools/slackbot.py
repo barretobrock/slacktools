@@ -100,7 +100,7 @@ class SlackBotBase(SlackTools):
         for k, v in self.commands.items():
             if 'pattern' not in v.keys():
                 v['pattern'] = k
-            if 'flags' in v.keys():
+            if v.get('flags') is not None:
                 extra_desc = '\n\t\t'.join([f'*`{x["pattern"]}`*: {x["desc"]}' for x in v['flags']])
                 # Append flags to the end of the description (they'll be tabbed in)
                 v["desc"] += f'\n\t_optional flags_\n\t\t{extra_desc}'
