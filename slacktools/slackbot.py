@@ -11,12 +11,11 @@ from .tools import BlockKitBuilder, SlackTools, SecretStore
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, log_name: str, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
+    def __init__(self, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
                  test_channel: str, commands: dict, cmd_categories: List[str],
-                 debug: bool = False):
+                 debug: bool = False, parent_log: Log = None):
         """
         Args:
-            log_name: str, log name of kavalkilu.Log object for logging special events
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
             credstore: SimpleNamespace, contains tokens & other secrets for connecting & interacting with Slack
@@ -42,7 +41,7 @@ class SlackBotBase(SlackTools):
             cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
-        self._log = Log(log_name)
+        self._log = Log(parent_log, child_name=self.__class__.__name__)
         super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log)
         self.debug = debug
         self.dt = DateTools()
@@ -256,7 +255,7 @@ class SlackBotBase(SlackTools):
             match = re.match(regex, message)
             if match is not None:
                 # We've matched on a command
-                resp = resp_dict['value']
+                resp = resp_dict['response']
                 # Add the regex pattern into the event dict
                 event_dict['match_pattern'] = regex
                 if isinstance(resp, list):
