@@ -172,6 +172,76 @@ class SlackBotBase(SlackTools):
                         self._log.error(f'Exception occurred: {exception_msg}', e)
                         self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
 
+    def handle_command(self, event_dict: dict):
+        """Handles a bot command if it's known"""
+        response = None
+        message = event_dict['message']
+        channel = event_dict['channel']
+        self._log.debug(f'Incoming message: {message}')
+
+        is_matched = False
+        for regex, resp_dict in self.commands.items():
+            match = re.match(regex, message)
+            if match is not None:
+                self._log.debug(f'Matched on pattern: {regex}')
+                # We've matched on a command
+                resp = resp_dict['response']
+                # Add the regex pattern into the event dict
+                event_dict['match_pattern'] = regex
+                if isinstance(resp, list):
+                    if len(resp) == 0:
+                        # Empty response placeholder... Maybe we'll use this for certain commands.
+                        self._log.debug('Empty list response')
+                        response = None
+                    elif isinstance(resp[0], dict):
+                        # Response is a JSON blob for handling in Block Kit.
+                        self._log.debug('JSON response')
+                        response = resp
+                    else:
+                        # Copy the list to ensure changes aren't propagated to the command list
+                        self._log.debug('Possibly command response. '
+                                        'Replacing list items with variables where applicable...')
+                        resp_list = resp.copy()
+                        # Examine list, replace any known strings ('message', 'channel', etc.)
+                        #   with event context variables
+                        for k, v in event_dict.items():
+                            if k in resp_list:
+                                resp_list[resp_list.index(k)] = v
+                        # Function with args; sometimes response can be None
+                        response = self.call_command(*resp_list)
+                else:
+                    # String response
+                    self._log.debug('Simple string response')
+                    response = resp
+                is_matched = True
+                self._log.debug(f'Response is of type: {type(response)}')
+                break
+
+        if message != '' and not is_matched:
+            response = f"I didn\'t understand this: *`{message}`*\n" \
+                       f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
+                       f"to get a list of my commands."
+
+        if response is not None:
+            if isinstance(response, str):
+                try:
+                    response = response.format(**event_dict)
+                except KeyError:
+                    # Response likely has some curly braces in it that disrupt str.format().
+                    # Pass string without formatting
+                    pass
+                self.send_message(channel, response)
+            elif isinstance(response, list):
+                self.send_message(channel, '', blocks=response)
+
+    @staticmethod
+    def call_command(cmd: Callable, *args, **kwargs):
+        """
+        Calls the command referenced while passing in arguments
+        :return: None or string
+        """
+        return cmd(*args, **kwargs)
+
     def parse_slash_command(self, event_data: dict):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
@@ -243,68 +313,6 @@ class SlackBotBase(SlackTools):
             if flag in parsed_cmd.keys():
                 return parsed_cmd[flag]
         return default
-
-    def handle_command(self, event_dict: dict):
-        """Handles a bot command if it's known"""
-        response = None
-        message = event_dict['message']
-        channel = event_dict['channel']
-
-        is_matched = False
-        for regex, resp_dict in self.commands.items():
-            match = re.match(regex, message)
-            if match is not None:
-                # We've matched on a command
-                resp = resp_dict['response']
-                # Add the regex pattern into the event dict
-                event_dict['match_pattern'] = regex
-                if isinstance(resp, list):
-                    if len(resp) == 0:
-                        # Empty response placeholder... Maybe we'll use this for certain commands.
-                        response = None
-                    elif isinstance(resp[0], dict):
-                        # Response is a JSON blob for handling in Block Kit.
-                        response = resp
-                    else:
-                        # Copy the list to ensure changes aren't propagated to the command list
-                        resp_list = resp.copy()
-                        # Examine list, replace any known strings ('message', 'channel', etc.)
-                        #   with event context variables
-                        for k, v in event_dict.items():
-                            if k in resp_list:
-                                resp_list[resp_list.index(k)] = v
-                        # Function with args; sometimes response can be None
-                        response = self.call_command(*resp_list)
-                else:
-                    # String response
-                    response = resp
-                is_matched = True
-                break
-
-        if message != '' and not is_matched:
-            response = f"I didn\'t understand this: *`{message}`*\n" \
-                       f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
-                       f"to get a list of my commands."
-
-        if response is not None:
-            if isinstance(response, str):
-                try:
-                    response = response.format(**event_dict)
-                except KeyError:
-                    # Response likely has some curly braces in it that disrupt str.format().
-                    # Pass string without formatting
-                    pass
-                self.send_message(channel, response)
-            elif isinstance(response, list):
-                self.send_message(channel, '', blocks=response)
-
-    @staticmethod
-    def call_command(cmd: Callable, *args, **kwargs):
-        """
-        Calls the command referenced while passing in arguments
-        :return: None or string
-        """
-        return cmd(*args, **kwargs)
 
     def get_time_elapsed(self, st_dt: datetime) -> str:
         """Gets elapsed time between two datetimes"""

@@ -30,7 +30,7 @@ class SlackSession:
         self.url_add = f'{base_url}/api/emoji.add'
         self.url_list = f'{base_url}/api/emoji.adminList'
 
-        self.session = self.init_session()
+        self.session = self.init_session()  # type: requests.Session
 
     def init_session(self) -> requests.Session:
         """Initializes session"""

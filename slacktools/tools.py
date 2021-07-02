@@ -210,26 +210,33 @@ class SlackTools:
         self.log.debug(f'Collecting users\' info.')
         user_info = []
         for user in user_list:
-            resp = None
-            try:
-                resp = self.bot.users_info(user=user)
-            except SlackApiError:
-                if throw_exception:
-                    self._check_for_exception(resp)
-                if resp['error'] == 'user_not_found':
-                    # Unsuccessful at finding user. Add in a placeholder.
-                    self.log.debug(f'User not found: {user}.')
-                    resp = {
-                        'user': {
-                            'id': user,
-                            'real_name': 'Unknown User',
-                            'name': 'unknown_user',
-                            'display_name': 'unknown_user',
-                        }
-                    }
-            if 'user' in resp.data.keys():
-                user_info.append(resp['user'])
+            respdata = self.get_user_info(user_id=user, throw_exception=throw_exception)
+            if 'user' in respdata.keys():
+                user_info.append(respdata['user'])
         return user_info
+
+    def get_user_info(self, user_id: str, throw_exception: bool = False) -> Dict:
+        """Gets individual user info"""
+        resp = None
+        respdata = None
+        try:
+            resp = self.bot.users_info(user=user_id)
+            respdata = resp.data
+        except SlackApiError:
+            if throw_exception:
+                self._check_for_exception(resp)
+            if resp['error'] == 'user_not_found':
+                # Unsuccessful at finding user. Add in a placeholder.
+                self.log.debug(f'User not found: {user_id}.')
+                respdata = {
+                    'user': {
+                        'id': user_id,
+                        'real_name': 'Unknown User',
+                        'name': 'unknown_user',
+                        'display_name': 'unknown_user',
+                    }
+                }
+        return respdata
 
     def open_dialog(self, dialog: Dict, trigger_id: str, **kwargs):
         """Open a dialog with a user by passing in a trigger id received from another interaction"""
@@ -301,6 +308,16 @@ class SlackTools:
         resp = self.bot.conversations_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
+
+    def create_channel(self, channel_name: str, is_private: bool = False):
+        """Creates a public/private channel"""
+        self.log.debug(f'Creating channel {channel_name} as a {"private" if is_private else "public"} channel')
+
+    def invite_to_channel(self, channel: str, user_list: List[str]):
+        """Invites a list of users to a given channel"""
+        self.log.debug(f'Inviting users: {user_list} to channel {channel}')
+        resp = self.bot.channels_invite(channel=channel, user=','.join(user_list))
+        self._check_for_exception(resp)
 
     def search_messages_by_date(self, channel: str = None, from_uid: str = None, after_date: dt = None,
                                 after_ts: dt = None, on_date: dt = None, during_m: dt = None,
