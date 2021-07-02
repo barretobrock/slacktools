@@ -259,7 +259,10 @@ class SlackBotBase(SlackTools):
                 # Add the regex pattern into the event dict
                 event_dict['match_pattern'] = regex
                 if isinstance(resp, list):
-                    if isinstance(resp[0], dict):
+                    if len(resp) == 0:
+                        # Empty response placeholder... Maybe we'll use this for certain commands.
+                        response = None
+                    elif isinstance(resp[0], dict):
                         # Response is a JSON blob for handling in Block Kit.
                         response = resp
                     else:
