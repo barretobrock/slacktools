@@ -209,6 +209,10 @@ class SlackBotBase(SlackTools):
                                 resp_list[resp_list.index(k)] = v
                         # Function with args; sometimes response can be None
                         response = self.call_command(*resp_list)
+                elif callable(resp):
+                    # Handle when response is just callable
+                    self._log.debug('Callable response')
+                    response = resp()
                 else:
                     # String response
                     self._log.debug('Simple string response')
