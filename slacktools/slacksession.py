@@ -133,11 +133,12 @@ class SlackSession:
 
         return fpath
 
-    def upload_emoji_from_url(self, url: str, name: str = None):
+    def upload_emoji_from_url(self, url: str, name: str = None) -> bool:
         """Uploads an emoji from a given URL with the option of changing its name"""
         # Handle downloading of emoji
         self.log.debug('Beginning emoji download process...')
         emoji_path = self._download_emoji_from_url(url=url, name=name)
         # Upload the emoji
         self.log.debug('Beginning emoji upload process...')
-        self.upload_emoji(filepath=emoji_path)
+        result = self.upload_emoji(filepath=emoji_path)
+        return result
