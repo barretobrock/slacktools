@@ -248,6 +248,30 @@ class BlockKitButtons(BlockKitBase):
         }
 
 
+class BlockKitInput(BlockKitBase):
+    """Block Kit methods for building out input objects"""
+    @classmethod
+    def make_plaintext_input(cls, label: str, action_id: str = 'plain-text-input', multiline: bool = False) -> \
+            NestedDict:
+        element_dict = {
+            'type': 'plain_text_input',
+            'action_id': action_id,
+            'dispatch_action_config': {
+                'trigger_actions_on': ['on_enter_pressed']
+            }
+        }
+        if multiline:
+            element_dict.update({'multiline': True})
+        pt_input = {
+            'type': 'input',
+            'dispatch_action': True,
+            'element': element_dict,
+            'label': cls.plaintext_section(label)
+        }
+
+        return pt_input
+
+
 class BlockKitSelect(BlockKitBase):
     """Block Kit methods for building out selection objects"""
 
@@ -460,6 +484,6 @@ class BlockKitMenu(BlockKitBase):
         }
 
 
-class BlockKitBuilder(BlockKitText, BlockKitButtons, BlockKitSelect, BlockKitMenu, BlockKitDialog):
+class BlockKitBuilder(BlockKitText, BlockKitButtons, BlockKitSelect, BlockKitMenu, BlockKitDialog, BlockKitInput):
     """Helper class to build out Block Kit things"""
     pass
