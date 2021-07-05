@@ -13,7 +13,7 @@ class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
                  test_channel: str, commands: dict, cmd_categories: List[str],
-                 debug: bool = False, parent_log: Log = None):
+                 debug: bool = False, parent_log: Log = None, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
@@ -42,7 +42,8 @@ class SlackBotBase(SlackTools):
             debug: bool, if True, will provide additional info into exceptions
         """
         self._log = Log(parent_log, child_name=self.__class__.__name__)
-        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log)
+        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log,
+                         use_session=use_session)
         self.debug = debug
         self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
