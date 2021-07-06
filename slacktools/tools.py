@@ -185,6 +185,7 @@ class SlackTools:
             'status_text': user_dict['profile']['status_text'],
             'avi_hash': user_dict['profile']['avatar_hash'],
             'avi': user_dict['profile']['image_512'],
+            'avi32': user_dict['profile']['image_32'],
         }
 
     def get_channel_members(self, channel: str, humans_only: bool = False) -> List[dict]:

@@ -92,7 +92,7 @@ class SlackBotBase(SlackTools):
         """
         self._log.debug(f'Building help block')
         blocks = [
-            self.bkb.make_block_section(intro, accessory=self.bkb.make_image_accessory(avi_url, avi_alt)),
+            self.bkb.make_block_section(intro, accessory=self.bkb.make_image_element(avi_url, avi_alt)),
             self.bkb.make_block_divider()
         ]
         help_dict = {cat: [] for cat in self.cmd_categories}
@@ -164,9 +164,13 @@ class SlackBotBase(SlackTools):
                     exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                     if self.debug:
                         blocks = [
-                            self.bkb.make_context_section(f"Exception occurred: \n*`{exception_msg}`*"),
+                            self.bkb.make_context_section([
+                                self.bkb.markdown_section(f"Exception occurred: \n*`{exception_msg}`*")
+                            ]),
                             self.bkb.make_block_divider(),
-                            self.bkb.make_context_section(f'```{traceback.format_exc()}```')
+                            self.bkb.make_context_section([
+                                self.bkb.markdown_section(f'```{traceback.format_exc()}```')
+                            ])
                         ]
                         self.send_message(msg_packet['channel'], message='', blocks=blocks)
                     else:

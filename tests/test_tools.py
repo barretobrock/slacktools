@@ -31,7 +31,7 @@ class TestSlackTools(unittest.TestCase):
     def test_send_message_and_update2(self):
         ts = self.st.send_message(self.test_channel, 'Testerino', ret_ts=True)
         block = [
-            self.bkb.make_context_section('lol what context'),
+            self.bkb.make_context_section([self.bkb.markdown_section('lol what context')]),
             self.bkb.make_block_divider(),
             self.bkb.make_block_section('testy test - best test has a zest of the west')
         ]
