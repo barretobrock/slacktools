@@ -37,7 +37,7 @@ class BlockKitBase:
         }
 
     @classmethod
-    def make_image_accessory(cls, url: str, alt_txt: str) -> BaseDict:
+    def make_image_element(cls, url: str, alt_txt: str) -> BaseDict:
         """Builds a dict for describing an accessory image, generally used with make_block_section
         Args:
             url: str, the url that points to the image
@@ -158,20 +158,16 @@ class BlockKitText(BlockKitBase):
         }
 
     @classmethod
-    def make_context_section(cls, txt_obj: Union[str, List[str]]) -> Dict[str, Union[str, List[str]]]:
+    def make_context_section(cls, elements: List[BaseDict]) -> Dict[str, Union[str, List[str]]]:
         """Takes in a list of text chunks and returns a dictionary
         that renders a context section in Block Kit
         Args:
-            txt_obj: list of str or str, tex to include in the context block
+            elements: list of other elements, typically makrdown_sections, to include in this block
         """
-        if isinstance(txt_obj, str):
-            element_list = [cls.markdown_section(txt_obj)]
-        else:
-            element_list = [cls.markdown_section(x) for x in txt_obj]
 
         return {
             "type": "context",
-            "elements": element_list
+            "elements": elements
         }
 
 
