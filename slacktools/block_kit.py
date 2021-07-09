@@ -158,12 +158,18 @@ class BlockKitText(BlockKitBase):
         }
 
     @classmethod
-    def make_context_section(cls, elements: List[BaseDict]) -> Dict[str, Union[str, List[str]]]:
+    def make_context_section(cls, elements: Union[List[BaseDict], List[str], str]) -> Dict[str, Union[str, List[str]]]:
         """Takes in a list of text chunks and returns a dictionary
         that renders a context section in Block Kit
         Args:
             elements: list of other elements, typically makrdown_sections, to include in this block
         """
+        if isinstance(elements, str):
+            # Build markdown section from string
+            elements = [cls.markdown_section(elements)]
+        elif isinstance(elements, list) and all([isinstance(x, str) for x in elements]):
+            # Build markdown section from list of str
+            elements = [cls.markdown_section(x) for x in elements]
 
         return {
             "type": "context",

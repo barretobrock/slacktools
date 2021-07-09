@@ -245,6 +245,13 @@ class SlackTools:
         # Check response for exception
         self._check_for_exception(resp)
 
+    def update_home_tab(self, user_id: str, blocks: List[Dict]):
+        """Updates the app's home tab with info"""
+        self.bot.views_publish(user_id=user_id, view={
+            'type': 'home',
+            'blocks': blocks
+        })
+
     def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
                                 **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
