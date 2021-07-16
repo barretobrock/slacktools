@@ -251,9 +251,14 @@ class BlockKitButtons(BlockKitBase):
 
 
 class BlockKitInput(BlockKitBase):
-    """Block Kit methods for building out input objects"""
+    """Block Kit methods for building out input objects
+
+    References:
+        https://api.slack.com/reference/block-kit/block-elements#input
+    """
     @classmethod
-    def make_plaintext_input(cls, label: str, action_id: str = 'plain-text-input', multiline: bool = False) -> \
+    def make_plaintext_input(cls, label: str, action_id: str = 'plain-text-input', multiline: bool = False,
+                             initial_value: str = None, min_length: int = None, max_length: int = None) -> \
             NestedDict:
         element_dict = {
             'type': 'plain_text_input',
@@ -264,6 +269,12 @@ class BlockKitInput(BlockKitBase):
         }
         if multiline:
             element_dict.update({'multiline': True})
+        if initial_value is not None:
+            element_dict.update({'initial_value': initial_value})
+        if max_length is not None:
+            element_dict.update({'max_length': max_length})
+        if min_length is not None:
+            element_dict.update({'min_length': min_length})
         pt_input = {
             'type': 'input',
             'dispatch_action': True,
