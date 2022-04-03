@@ -10,20 +10,28 @@ import pygsheets
 import requests
 from io import BytesIO
 import pandas as pd
-from typing import Union, List, Optional, Tuple, Dict
+from typing import (
+    Union,
+    List,
+    Optional,
+    Tuple,
+    Dict
+)
+from datetime import (
+    datetime as dt,
+    timedelta as tdelta
+)
+from random import randint
 from tabulate import tabulate
 from asyncio import Future
 from slack import WebClient
 from slack.web.slack_response import SlackResponse
 from slack.errors import SlackApiError
-from random import randint
-from datetime import datetime as dt
-from datetime import timedelta as tdelta
-from easylogger import Log
 from pykeepass import PyKeePass
 from pykeepass.entry import Entry
-from .block_kit import BlockKitBuilder
-from .slacksession import SlackSession
+from easylogger import Log
+from slacktools.block_kit import BlockKitBuilder
+from slacktools.slacksession import SlackSession
 
 
 class SecretStore:
@@ -132,10 +140,11 @@ class SlackTools:
         # Grab tokens
         self.xoxp_token = slack_creds.xoxp_token
         self.xoxb_token = slack_creds.xoxb_token
+        self.xoxc_token = slack_creds.xoxc_token
         try:
-            self.cookie = slack_creds.cookie
+            self.d_cookie = slack_creds.d_cookie
         except AttributeError:
-            self.cookie = ''
+            self.d_cookie = ''
 
         self.bkb = BlockKitBuilder()
 
@@ -144,7 +153,11 @@ class SlackTools:
         # Test API calls to the bot
         self.bot_id = self.bot.auth_test()
 
-        self.session = SlackSession(self.team, self.cookie, parent_log=self.log) if use_session else None
+        self.session = SlackSession(self.team, d_cookie=self.d_cookie, xoxc_token=self.xoxc_token,
+                                    parent_log=self.log) if use_session else None
+
+    def refresh_xoxc_token(self, new_token: str):
+        self.session.refresh_xoxc_token_and_cookie(new_token=new_token, new_d_cookie=self.d_cookie)
 
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:

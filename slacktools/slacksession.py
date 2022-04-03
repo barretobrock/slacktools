@@ -2,16 +2,14 @@
     - Majority of routines from https://github.com/smashwilson/slack-emojinator/blob/master/upload.py
 """
 import os
-import re
 import tempfile
 from urllib.parse import urlparse
 import requests
-from bs4 import BeautifulSoup
 from easylogger import Log
 
 
-API_TOKEN_REGEX = r'.*(?:\"?api_token\"?):\s*\"([^"]+)\".*'
-API_TOKEN_PATTERN = re.compile(API_TOKEN_REGEX)
+class SlackSessionNotInitException(Exception):
+    pass
 
 
 class ParseError(Exception):
@@ -20,11 +18,12 @@ class ParseError(Exception):
 
 class SlackSession:
 
-    def __init__(self, team: str, cookie: str, parent_log: Log = None):
+    def __init__(self, team: str, d_cookie: str, xoxc_token: str, parent_log: Log = None):
         self.log = Log(parent_log, child_name=self.__class__.__name__)
         self.team = team
-        self.cookie = cookie
-        self.log.debug(f'Cookie is {len(self.cookie)} chars and begins with "{self.cookie[0]}".')
+        self.d_cookie = d_cookie
+        self.xoxc_token = xoxc_token
+        self.log.debug(f'Cookie is {len(self.d_cookie)} chars and begins with "{self.d_cookie[:10]}".')
 
         base_url = f'https://{self.team}.slack.com'
         self.url_customize = f'{base_url}/customize/emoji'
@@ -33,48 +32,22 @@ class SlackSession:
 
         self.session = self.init_session()  # type: requests.Session
 
-    def _fetch_api_token(self, session: requests.Session) -> str:
-        """Retrieves the xoxs API token used in working with emoji uploads"""
-        req = session.get(session.url_customize)
-        req.raise_for_status()
-        soup = BeautifulSoup(req.text, "html.parser")
-
-        all_script = soup.findAll("script")
-        for script in all_script:
-            if script.string is None:
-                continue
-            for line in script.string.splitlines():
-                if 'api_token' in line:
-                    # api_token: "xoxs-12345-abcdefg....",
-                    # "api_token":"xoxs-12345-abcdefg....",
-                    match_group = API_TOKEN_PATTERN.match(line.strip())
-                    if not match_group:
-                        # Mismatch - note it in the log in case it's something we should examine...
-                        mm_pos = line.index("api_token")
-                        self.log.debug(f'Mismatch excerpt on "api_token" search: '
-                                       f'{line[mm_pos - 10:mm_pos + 30]}')
-                        continue
-                    return match_group.group(1)
-
     def init_session(self) -> requests.Session:
         """Initializes session"""
 
         session = requests.session()
-        session.headers = {'Cookie': self.cookie}
+        session.headers = {'Cookie': self.d_cookie}
         session.url_customize = self.url_customize
         session.url_add = self.url_add
         session.url_list = self.url_list
-        session.api_token = self._fetch_api_token(session=session)
-        if session.api_token is None:
-            self.log.error('No xoxs api token found...')
-        else:
-            self.log.debug('Token extraction successful.')
+        session.api_token = self.xoxc_token
 
         return session
 
-    def refresh_cookie(self, new_cookie: str):
+    def refresh_xoxc_token_and_cookie(self, new_token: str, new_d_cookie: str):
         """Refreshes the cookie with a new one and re-inits the session"""
-        self.cookie = new_cookie
+        self.xoxc_token = new_token
+        self.d_cookie = new_d_cookie
         self.session = self.init_session()
 
     def upload_emoji(self, filepath: str) -> bool:
@@ -82,13 +55,14 @@ class SlackSession:
         NOTE: The name of the emoji is taken from the filepath
         """
         if self.session is None:
-            raise Exception('Cannot initialize session. Session not established due to lack of cookie.')
+            raise SlackSessionNotInitException('Cannot initialize session. '
+                                               'Session not established due to lack of cookie.')
         filename = os.path.split(filepath)[1]
         emoji_name = os.path.splitext(filename)[0]
         data = {
             'mode': 'data',
             'name': emoji_name,
-            'token': self.session.api_token
+            'token': self.xoxc_token
         }
         files = {'image': open(filepath, 'rb')}
         resp = self.session.post(self.session.url_add, data=data, files=files, allow_redirects=False)

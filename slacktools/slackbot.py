@@ -3,10 +3,20 @@
 import re
 import traceback
 from datetime import datetime
-from typing import List, Union, Tuple, Optional, Callable
+from typing import (
+    List,
+    Union,
+    Tuple,
+    Optional,
+    Callable
+)
 from easylogger import Log
 from kavalkilu import DateTools
-from .tools import BlockKitBuilder, SlackTools, SecretStore
+from slacktools.tools import (
+    BlockKitBuilder,
+    SlackTools,
+    SecretStore
+)
 
 
 class SlackBotBase(SlackTools):

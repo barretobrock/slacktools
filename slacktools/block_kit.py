@@ -1,4 +1,9 @@
-from typing import Union, List, Dict, Iterable
+from typing import (
+    Union,
+    List,
+    Dict,
+    Iterable
+)
 
 
 # Types
@@ -158,7 +163,8 @@ class BlockKitText(BlockKitBase):
         }
 
     @classmethod
-    def make_context_section(cls, elements: Union[List[BaseDict], List[str], str]) -> Dict[str, Union[str, List[str]]]:
+    def make_context_section(cls, elements: Union[List[BaseDict], List[str], str]) ->\
+            Dict[str, Union[str, List[str]]]:
         """Takes in a list of text chunks and returns a dictionary
         that renders a context section in Block Kit
         Args:

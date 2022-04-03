@@ -1,8 +1,6 @@
-beautifulsoup4
-easylogger
-Flask>=1.1.2
+easylogger @ git+https://github.com/barretobrock/easylogger@main#egg=easylogger
+Flask>=2.1.0
 pandas
-pyee==8.1.0
 pygsheets
 pykeepass
 pytest
