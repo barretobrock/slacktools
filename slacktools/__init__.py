@@ -11,7 +11,5 @@ from .tools import (
     SecretStore
 )
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-__update_date__ = get_versions()['date']
-del get_versions
+__version__ = '1.5.1'
+__update_date__ = '2022-04-08_16:01:41'

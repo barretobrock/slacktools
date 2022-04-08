@@ -1,9 +1,0 @@
-easylogger @ git+https://github.com/barretobrock/easylogger@main#egg=easylogger
-Flask>=2.1.0
-pandas
-pygsheets
-pykeepass
-pytest
-requests>=2.25.1
-slackclient==2.9.3
-tabulate

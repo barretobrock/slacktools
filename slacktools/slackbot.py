@@ -3,6 +3,7 @@
 import re
 import traceback
 from datetime import datetime
+from dateutil import relativedelta
 from typing import (
     List,
     Union,
@@ -11,7 +12,6 @@ from typing import (
     Callable
 )
 from easylogger import Log
-from kavalkilu import DateTools
 from slacktools.tools import (
     BlockKitBuilder,
     SlackTools,
@@ -55,7 +55,6 @@ class SlackBotBase(SlackTools):
         super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log,
                          use_session=use_session)
         self.debug = debug
-        self.dt = DateTools()
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
@@ -333,9 +332,27 @@ class SlackBotBase(SlackTools):
                 return parsed_cmd[flag]
         return default
 
-    def get_time_elapsed(self, st_dt: datetime) -> str:
+    @staticmethod
+    def get_time_elapsed(st_dt: datetime) -> str:
         """Gets elapsed time between two datetimes"""
-        return self.dt.get_human_readable_date_diff(st_dt, datetime.now())
+        result = relativedelta.relativedelta(datetime.now(), st_dt)
+
+        attrs = {
+            'years': 'y',
+            'months': 'mo',
+            'days': 'd',
+            'hours': 'h',
+            'minutes': 'm',
+            'seconds': 's'
+        }
+
+        result_list = []
+        for attr in attrs.keys():
+            attr_val = getattr(result, attr)
+            if attr_val is not None:
+                if attr_val > 0:
+                    result_list.append('{:d}{}'.format(attr_val, attrs[attr]))
+        return ' '.join(result_list)
 
     def get_prev_msg_in_channel(self, channel: str, timestamp: str,
                                 callable_list=None) -> Optional[Union[str, List[dict]]]:

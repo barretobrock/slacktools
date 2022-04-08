@@ -25,12 +25,15 @@ This is really something I built for personal use. There are credential collecti
 
 ## Installation
 ```bash
-python3 -m pip install git+https://github.com/barretobrock/slacktools.git#egg=slacktools
+cd ~/venvs && python3 -m venv slackspace
+source ~/venvs/slackspace/bin/activate
+cd ~/extras && git clone https://github.com/barretobrock/slacktools.git
+cd slacktools && sh ppmgr.sh pull
 ```
 
 ## Upgrade
 ```bash
-python3 -m pip install git+https://github.com/barretobrock/slacktools.git#egg=slacktools --upgrade
+poetry update -v
 ```
 
 
