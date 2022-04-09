@@ -4,7 +4,9 @@ import re
 import traceback
 from datetime import datetime
 from dateutil import relativedelta
+from types import SimpleNamespace
 from typing import (
+    Dict,
     List,
     Union,
     Tuple,
@@ -12,31 +14,31 @@ from typing import (
     Callable
 )
 from loguru import logger
-from slacktools.tools import (
-    BlockKitBuilder,
-    SlackTools,
-    SecretStore
-)
+from slacktools.tools import SlackTools
+from slacktools.block_kit import BlockKitBuilder as BKitB
+from slacktools.slack_input_parser import block_text_converter
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
-                 test_channel: str, commands: dict, cmd_categories: List[str],
+    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str],
+                 main_channel: str, commands: dict, cmd_categories: List[str],
                  debug: bool = False, parent_log: logger = None, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
-            credstore: SimpleNamespace, contains tokens & other secrets for connecting & interacting with Slack
+            bot_cred_entry: SimpleNamespace, contains tokens & other secrets for connecting &
+                    interacting with Slack
                 required keys:
                     team: str, the Slack workspace name
                     xoxp-token: str, the user token
                     xoxb-token: str, the bot token
                 optional keys:
-                    cookie: str, cookie used for special processes outside
+                    d-cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
-            test_channel: str, the channel to send messages by default
+                    xoxc-token: str, token for uploading emojis
+            main_channel: str, the channel to send messages by default
             commands: dict, all the commands the bot recognizes (to be built into help text)
                 expected keys:
                     cat: str, the category of the command (for grouping purposes) - must match with categories list
@@ -52,8 +54,7 @@ class SlackBotBase(SlackTools):
             debug: bool, if True, will provide additional info into exceptions
         """
         self._log = parent_log.bind(child_name=self.__class__.__name__)
-        super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log,
-                         use_session=use_session)
+        super().__init__(bot_cred_entry=bot_cred_entry, parent_log=self._log, use_session=use_session)
         self.debug = debug
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
@@ -62,15 +63,11 @@ class SlackBotBase(SlackTools):
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
-        self.test_channel = test_channel
+        self.main_channel = main_channel
 
-        self.bkb = BlockKitBuilder()
         self.commands = commands
         self.cmd_categories = cmd_categories
 
-        auth_test = self.bot.auth_test()
-        self.bot_id = auth_test['bot_id']
-        self.user_id = auth_test['user_id']
         self.triggers = [f'{self.user_id}']
         # User ids are formatted in a different way, so just
         #   break this out into a variable for displaying in help text
@@ -101,8 +98,8 @@ class SlackBotBase(SlackTools):
         """
         self._log.debug('Building help block')
         blocks = [
-            self.bkb.make_block_section(intro, accessory=self.bkb.make_image_element(avi_url, avi_alt)),
-            self.bkb.make_block_divider()
+            BKitB.make_block_section(intro, accessory=BKitB.make_image_element(avi_url, avi_alt)),
+            BKitB.make_block_divider()
         ]
         help_dict = {cat: [] for cat in self.cmd_categories}
 
@@ -122,8 +119,8 @@ class SlackBotBase(SlackTools):
 
         for command in command_frags:
             blocks += [
-                self.bkb.make_block_section(command),
-                self.bkb.make_block_divider()
+                BKitB.make_block_section(command),
+                BKitB.make_block_divider()
             ]
 
         return blocks
@@ -173,12 +170,12 @@ class SlackBotBase(SlackTools):
                     exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                     if self.debug:
                         blocks = [
-                            self.bkb.make_context_section([
-                                self.bkb.markdown_section(f"Exception occurred: \n*`{exception_msg}`*")
+                            BKitB.make_context_section([
+                                BKitB.markdown_section(f"Exception occurred: \n*`{exception_msg}`*")
                             ]),
-                            self.bkb.make_block_divider(),
-                            self.bkb.make_context_section([
-                                self.bkb.markdown_section(f'```{traceback.format_exc()}```')
+                            BKitB.make_block_divider(),
+                            BKitB.make_context_section([
+                                BKitB.markdown_section(f'```{traceback.format_exc()}```')
                             ])
                         ]
                         self.send_message(msg_packet['channel'], message='', blocks=blocks)
@@ -280,59 +277,6 @@ class SlackBotBase(SlackTools):
                              'raw_message': processed_cmd})
 
     @staticmethod
-    def parse_flags_from_command(message: str) -> dict:
-        """Takes in a message string and parses out flags in the string and the values following them
-        Args:
-            message: str, the command message containing the flags
-
-        Returns:
-            dict, flags parsed out into keys
-
-        Example:
-            >>> msg = 'process this command -l -u this that other --p 1 2 3 4 5'
-            >>> #parse_flags_from_command(msg)
-            >>> {
-            >>>     'cmd': 'process this command',
-            >>>     'l': '',
-            >>>     'u': 'this that other',
-            >>>     'p': '1 2 3 4 5'
-            >>> }
-        """
-        msg_split = message.split(' ')
-        cmd_dict = {'cmd': re.split(r'-+\w+', message)[0].strip()}
-        flag_regex = re.compile(r'^-+(\w+)')
-        for i, part in enumerate(msg_split):
-            if flag_regex.match(part) is not None:
-                flag = flag_regex.match(part).group(1)
-                # Get list of values after the flag up until the next flag
-                vals = []
-                for val in msg_split[i + 1:]:
-                    if flag_regex.match(val) is not None:
-                        break
-                    vals.append(val)
-                cmd_dict[flag] = ' '.join(vals)
-        return cmd_dict
-
-    def get_flag_from_command(self, cmd: str, flags: Union[str, List[str]], default: Optional[str] = None) -> str:
-        """Reads in the command, if no flag, will return the default
-        Args:
-            cmd: str, the command message to parse
-            flags: str or list of str, the flag(s) to search for
-            default: str, the default value to set if no flag is found
-        """
-
-        # Parse the command into a dictionary of the command parts (command, flags)
-        parsed_cmd = self.parse_flags_from_command(cmd)
-        if isinstance(flags, str):
-            # Put this into a list to unify our examination methods
-            flags = [flags]
-
-        for flag in flags:
-            if flag in parsed_cmd.keys():
-                return parsed_cmd[flag]
-        return default
-
-    @staticmethod
     def get_time_elapsed(st_dt: datetime) -> str:
         """Gets elapsed time between two datetimes"""
         result = relativedelta.relativedelta(datetime.now(), st_dt)
@@ -354,101 +298,24 @@ class SlackBotBase(SlackTools):
                     result_list.append('{:d}{}'.format(attr_val, attrs[attr]))
         return ' '.join(result_list)
 
-    def get_prev_msg_in_channel(self, channel: str, timestamp: str,
-                                callable_list=None) -> Optional[Union[str, List[dict]]]:
-        """Gets the previous message from the channel"""
-        self._log.debug(f'Getting previous message in channel {channel}')
-        resp = self.bot.conversations_history(
-            channel=channel,
-            latest=timestamp,
-            limit=10)
-        if not resp['ok']:
-            return None
-        if 'messages' in resp.data.keys():
-            msgs = resp['messages']
-            last_msg = msgs[0]
-            if last_msg['text'] == "This content can't be displayed." and len(last_msg['blocks']) > 0:
-                # It's a block text, so we'll need to process it
-                #   Make sure a callable has been applied though
-                if callable_list is None:
-                    return 'Callable not included in get_prev_msg... Can\'t process blocks without this!'
-                return self.apply_function_to_text_from_blocks(last_msg['blocks'],
-                                                               callable_list=callable_list)
-            return last_msg['text']
-        return None
+    def convert_last_message(self, channel: str, timestamp: str, callable_list: List[Union[Callable, str]]) -> \
+            Union[str, List[Dict]]:
+        """Grabs the last message at a given time stamp in a given channel and applies
+        a function to convert the text in the block structure"""
+        last_msg = self.get_previous_msg_in_channel(channel=channel, timestamp=timestamp)
+        if last_msg['text'] == "This content can't be displayed." and len(last_msg['blocks']) > 0:
+            # It's a block text, so we'll need to process it
+            #   Make sure a callable has been applied though
+            if callable_list is None:
+                return 'Callable not included in get_prev_msg... Can\'t process blocks without this!'
+            return block_text_converter(blocks=last_msg['blocks'], callable_list=callable_list)
+        return last_msg['text']
 
-    def apply_function_to_text_from_blocks(self, blocks: List[dict], callable_list: list) -> List[dict]:
-        """
-        1) Iterates through a block, grabs text, replaces it with 'placeholder_x'
-        2) Take the dictionary of text with placeholders, applies a function to it,
-            which replaces the text in that dictionary
-        3) Takes the dictionary with the replaced text and applies it back into the block
-        """
-        translations_dict = {}
-        for block in blocks:
-            txt_dict, block_dict, n = self.nested_dict_replacer(block)
-            if len(txt_dict) > 0:
-                for k, v in txt_dict.items():
-                    if 'text' in callable_list:
-                        # Duplicate the list to avoid the original being overwritten
-                        clist = callable_list.copy()
-                        # Swap this string out for the actual text
-                        txt_pos = clist.index('text')
-                        clist[txt_pos] = v
-                        translations_dict[k] = clist[0](*clist[1:])
-                    else:
-                        translations_dict[k] = callable_list[0](*callable_list[1:])
-
-        # Replace blocks with translations
-        for i, block in enumerate(blocks):
-            txt_dict, block_dict, n = self.nested_dict_replacer(block, placeholders=translations_dict,
-                                                                extract=False)
-            blocks[i] = block_dict
-
-        return blocks
-
-    def nested_dict_replacer(self, d: dict, num: int = 0, placeholders: dict = None,
-                             extract: bool = True) -> Tuple[dict, dict, int]:
-        """Iterates through a nested dict, replaces items in 'text' field with placeholders and vice versa
-        Args:
-            d: dict, the (likely nested) input dictionary to work on
-            num: int, the nth placeholder we're working on
-            placeholders: dict,
-                key = placeholder text,
-                value = original text if extract == True otherwise translated
-            extract: bool, if True, will extract from d -> placeholders
-                if False, will replace placeholder text in d with translated text in placeholders
-        """
-        if placeholders is None:
-            placeholders = {}
-
-        for k, v in d.copy().items():
-            if isinstance(v, dict):
-                placeholders, d[k], num = self.nested_dict_replacer(v, num, placeholders, extract=extract)
-            elif isinstance(v, list):
-                for j, item in enumerate(v):
-                    placeholders, d[k][j], num = self.nested_dict_replacer(item, num, placeholders,
-                                                                           extract=extract)
-            else:
-                if k == 'text':
-                    if extract:
-                        placeholder = f'placeholder_{num}'
-                        # Take the text and move it to the temp dict
-                        placeholders[placeholder] = v
-                        # Replace the value in the real dict with the placeholder
-                        d[k] = placeholder
-                        num += 1
-                    else:
-                        # Replace placeholder text with translated text
-                        placeholder = d[k]
-                        d[k] = placeholders[placeholder]
-        return placeholders, d, num
-
-    def message_test_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
+    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
-            self.send_message(self.test_channel, message)
+            self.send_message(self.main_channel, message)
         elif blocks is not None:
-            self.send_message(self.test_channel, message='', blocks=blocks)
+            self.send_message(self.main_channel, message='', blocks=blocks)
         else:
             raise ValueError('No data passed for message.')

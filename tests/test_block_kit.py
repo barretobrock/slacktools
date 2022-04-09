@@ -1,5 +1,5 @@
 import unittest
-from slacktools.tools import BlockKitBuilder as bkb
+from slacktools.block_kit import BlockKitBuilder as bkb
 from .common import (
     get_test_logger,
     random_string

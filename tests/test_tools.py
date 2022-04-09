@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock
-from datetime import datetime
 from slacktools.tools import SlackTools
 from .common import (
     get_test_logger,
@@ -15,23 +14,25 @@ class TestSlackTools(unittest.TestCase):
         cls._log = get_test_logger()
 
     def setUp(self) -> None:
-        self.mock_gsr = make_patcher(self, 'slacktools.tools.GSheetReader')
-        self.mock_webclient = make_patcher(self, 'slacktools.tools.WebClient')
-        self.mock_session = make_patcher(self, 'slacktools.tools.SlackSession')
-        self.mock_secret = MagicMock(name='SecretStore')
+        self.mock_webclient = make_patcher(self, 'slacktools.slack_methods.WebClient')
+        self.mock_session = make_patcher(self, 'slacktools.slack_methods.SlackSession')
+        self.mock_cred_entry = MagicMock(name='bot_cred_entry')
         self.mock_cred_name = 'something'
 
-        self.st = SlackTools(credstore=self.mock_secret, slack_cred_name=self.mock_cred_name, parent_log=self._log,
-                             use_session=False)
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=False)
 
     def test_init(self):
         self.mock_webclient.assert_called()
         self.st.bot.auth_test.assert_called()
-        self.mock_secret.get_key_and_make_ns.assert_called_with(self.mock_cred_name)
         self.mock_session.assert_not_called()
-        # Test init when use_session is True
-        self.st = SlackTools(credstore=self.mock_secret, slack_cred_name=self.mock_cred_name, parent_log=self._log,
-                             use_session=True)
+        # Test init when use_session is True, but no cookie, xoxc keys provided
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=True)
+        self.mock_session.assert_not_called()
+
+        # Test init when use_session is True, but cookie and xoxc keys provided
+        self.mock_cred_entry.d_cookie = 'aoe'
+        self.mock_cred_entry.xoxc_token = 'tasoid'
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=True)
         self.mock_session.assert_called()
 
     def test_refresh_xoxc_token(self):

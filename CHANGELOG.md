@@ -15,6 +15,15 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.3] - 2022-04-09
+#### Added
+ - database engine base class & tests for the bots
+ - Inital `Slass`-based classes for making Slack responses more helpful in OOP 
+#### Changed
+ - Broke out slack procedures into more organized methods
+#### Removed
+ - Baked-in google sheet methods from slack tools, as it's a lot to spin up.
+ 
 ### [1.5.2] - 2022-04-08
 #### Added
  - real tests finally!

@@ -4,12 +4,12 @@
 Slack Tools: A common library for working with Slack
 """
 from .block_kit import BlockKitBuilder
+from .db_engine import PSQLClient
+from .gsheet import GSheetAgent
+from .secretstore import SecretStore
 from .slackbot import SlackBotBase
-from .tools import (
-    SlackTools,
-    GSheetReader,
-    SecretStore
-)
+from .slack_methods import SlackMethods
+from .tools import SlackTools
 
-__version__ = '1.5.2'
-__update_date__ = '2022-04-08_19:11:59'
+__version__ = '1.5.3'
+__update_date__ = '2022-04-09_11:26:04'
