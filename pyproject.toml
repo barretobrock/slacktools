@@ -19,6 +19,7 @@ include = ["CHANGELOG.md"]
 python = "^3.8"
 Flask = "2.1.1"
 pandas = "^1.4.2"
+loguru = "0.6.0"
 pygsheets = "^2.0.5"
 pykeepass = "^4.0.1"
 requests = "^2.27.1"

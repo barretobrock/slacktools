@@ -5,7 +5,7 @@ import os
 import tempfile
 from urllib.parse import urlparse
 import requests
-from easylogger import Log
+from loguru import logger
 
 
 class SlackSessionNotInitException(Exception):
@@ -18,8 +18,8 @@ class ParseError(Exception):
 
 class SlackSession:
 
-    def __init__(self, team: str, d_cookie: str, xoxc_token: str, parent_log: Log = None):
-        self.log = Log(parent_log, child_name=self.__class__.__name__)
+    def __init__(self, team: str, d_cookie: str, xoxc_token: str, parent_log: logger = None):
+        self.log = parent_log.bind(child_name=self.__class__.__name__)
         self.team = team
         self.d_cookie = d_cookie
         self.xoxc_token = xoxc_token

@@ -1,54 +1,71 @@
 import unittest
-from easylogger import Log
-from slacktools.tools import SlackTools, BlockKitBuilder, SecretStore
-from .mocks.slack_settings import settings
+from unittest.mock import MagicMock
+from datetime import datetime
+from slacktools.tools import SlackTools
+from .common import (
+    get_test_logger,
+    make_patcher,
+    random_string
+)
 
 
 class TestSlackTools(unittest.TestCase):
-    def setUp(self, bot='viktor') -> None:
-        # Read in the kdbx of secrets
-        credstore = SecretStore('secretprops-bobdev.kdbx')
-        _log = Log('slacktools-test', log_level_str='DEBUG')
-        self.st = SlackTools(credstore=credstore, slack_cred_name=bot, parent_log=_log)
-        bot_dict = settings [bot]
-        self.test_channel = bot_dict['test_channel']
-        self.test_user = bot_dict['test_user']
-        self.bkb = BlockKitBuilder()
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._log = get_test_logger()
 
-    def test_get_channel_members(self):
-        self.st.get_channel_members(self.test_channel)
+    def setUp(self) -> None:
+        self.mock_gsr = make_patcher(self, 'slacktools.tools.GSheetReader')
+        self.mock_webclient = make_patcher(self, 'slacktools.tools.WebClient')
+        self.mock_session = make_patcher(self, 'slacktools.tools.SlackSession')
+        self.mock_secret = MagicMock(name='SecretStore')
+        self.mock_cred_name = 'something'
 
-    def test_private_channel_message(self):
-        self.st.private_channel_message(self.test_user, self.test_channel, 'Did ya get that thing I sent ya?')
+        self.st = SlackTools(credstore=self.mock_secret, slack_cred_name=self.mock_cred_name, parent_log=self._log,
+                             use_session=False)
 
-    def test_send_message(self):
-        self.st.send_message(self.test_channel, 'Testerino')
+    def test_init(self):
+        self.mock_webclient.assert_called()
+        self.st.bot.auth_test.assert_called()
+        self.mock_secret.get_key_and_make_ns.assert_called_with(self.mock_cred_name)
+        self.mock_session.assert_not_called()
+        # Test init when use_session is True
+        self.st = SlackTools(credstore=self.mock_secret, slack_cred_name=self.mock_cred_name, parent_log=self._log,
+                             use_session=True)
+        self.mock_session.assert_called()
 
-    def test_send_message_and_update(self):
-        ts = self.st.send_message(self.test_channel, 'Testerino', ret_ts=True)
-        self.st.update_message(self.test_channel, ts, 'Hello, this is updated')
+    def test_refresh_xoxc_token(self):
+        self.mock_session.refresh_xoxc_token_and_cookie.assert_not_called()
 
-    def test_send_message_and_update2(self):
-        ts = self.st.send_message(self.test_channel, 'Testerino', ret_ts=True)
-        block = [
-            self.bkb.make_context_section([self.bkb.markdown_section('lol what context')]),
-            self.bkb.make_block_divider(),
-            self.bkb.make_block_section('testy test - best test has a zest of the west')
-        ]
-        self.st.update_message(self.test_channel, ts, blocks=block)
+    def test_parse_tag_from_text(self):
+        expect = 'THIS32KJ'
+        raw_txt = f'<@{expect}>'
+        self.assertEqual(expect, self.st.parse_tag_from_text(raw_txt.upper()))
+        self.assertEqual(expect, self.st.parse_tag_from_text(raw_txt.lower()))
 
-    def test_dm_and_update(self):
-        dm_chan, ts = self.st.private_message(self.test_user, 'Testerino', ret_ts=True)
-        self.st.update_message(dm_chan, ts, 'Hello, this is updated')
+    def test_build_emoji_char_dict(self):
+        resp = self.st._build_emoji_char_dict()
+        self.assertIsInstance(resp, dict)
+        self.assertGreater(len(resp), 26)
 
-    def test_private_message(self):
-        self.st.private_message(self.test_user, 'Testerino')
+    def test_build_phrase(self):
+        # First, confirm all characters have been converted into emojis
+        resp = self.st.build_phrase('hello this is a test 23.!')
+        self.assertNotIn(' ', resp)
+        # No dollar sign mapping, so that should come through
+        resp = self.st.build_phrase('hello$$')
+        self.assertIn('$', resp)
 
-    def test_get_channel_history(self):
-        self.st.get_channel_history(self.test_channel)
+    def test_search_message_by_date(self):
+        mock_resp = MagicMock(name='SlackResponse')
+        v = {'ok': True}
+        mock_resp.get.side_effect = v.get
+        mock_resp.data = {}
+        self.st.user.search_messages.return_value = mock_resp
 
-    def test_get_emojis(self):
-        self.st.get_emojis()
+        resp = self.st.search_messages_by_date(channel=random_string(20))
+        self.st.user.search_messages.assert_called()
+        self.assertIsNone(resp)
 
 
 if __name__ == '__main__':

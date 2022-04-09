@@ -29,7 +29,7 @@ from slack.web.slack_response import SlackResponse
 from slack.errors import SlackApiError
 from pykeepass import PyKeePass
 from pykeepass.entry import Entry
-from easylogger import Log
+from loguru import logger
 from slacktools.block_kit import BlockKitBuilder
 from slacktools.slacksession import SlackSession
 
@@ -74,7 +74,7 @@ class SecretStore:
                     try:
                         file_contents = json.loads(att.data.decode('utf-8'))
                         resp.update(file_contents)
-                    except:
+                    except Exception:
                         resp[att.filename] = att.data.decode('utf-8')
         resp.update(entry.custom_properties)
         return resp
@@ -114,7 +114,8 @@ class GSheetReader:
 class SlackTools:
     """Tools to make working with Slack API better"""
 
-    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: Log, use_session: bool = False):
+    def __init__(self, credstore: SecretStore, slack_cred_name: str, parent_log: logger,
+                 use_session: bool = False):
         """
         Args:
             credstore: SecretStore, contains tokens & other secrets for connecting & interacting with Slack
@@ -128,7 +129,7 @@ class SlackTools:
             parent_log: the parent log to attach to.
             use_session: enable when looking to do things like upload new emojis
         """
-        self.log = Log(parent_log, child_name=self.__class__.__name__)
+        self.log = parent_log.bind(child_name=self.__class__.__name__)
         slack_creds = credstore.get_key_and_make_ns(slack_cred_name)
         # Determine if a valid sheet key was provided. If not, just don't instantiate a gsr object
         try:
@@ -140,7 +141,10 @@ class SlackTools:
         # Grab tokens
         self.xoxp_token = slack_creds.xoxp_token
         self.xoxb_token = slack_creds.xoxb_token
-        self.xoxc_token = slack_creds.xoxc_token
+        if 'xoxc_token' in slack_creds.__dict__.keys():
+            self.xoxc_token = slack_creds.xoxc_token
+        else:
+            self.xoxc_token = None
         try:
             self.d_cookie = slack_creds.d_cookie
         except AttributeError:
@@ -157,7 +161,8 @@ class SlackTools:
                                     parent_log=self.log) if use_session else None
 
     def refresh_xoxc_token(self, new_token: str):
-        self.session.refresh_xoxc_token_and_cookie(new_token=new_token, new_d_cookie=self.d_cookie)
+        if self.session is not None:
+            self.session.refresh_xoxc_token_and_cookie(new_token=new_token, new_d_cookie=self.d_cookie)
 
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
@@ -221,7 +226,7 @@ class SlackTools:
 
     def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
         """Collects info from a list of user ids"""
-        self.log.debug(f'Collecting users\' info.')
+        self.log.debug('Collecting users\' info.')
         user_info = []
         for user in user_list:
             respdata = self.get_user_info(user_id=user, throw_exception=throw_exception)
@@ -362,7 +367,7 @@ class SlackTools:
 
         Notes: more on search modifiers here: https://slack.com/help/articles/202528808-Search-in-Slack
         """
-        self.log.debug(f'Beginning query build for message search.')
+        self.log.debug('Beginning query build for message search.')
         slack_date_fmt = '%m-%d-%Y'  # Slack has a specific format to adhere to when in the US lol
         # Begin building queries
         query = ''
@@ -382,7 +387,7 @@ class SlackTools:
             query += f' has:{has_emoji}'
         if has_pin is not None:
             if has_pin:
-                query += f' has:pin'
+                query += ' has:pin'
 
         self.log.debug(f'Sending query: {query}.')
         resp = None
@@ -473,12 +478,14 @@ class SlackTools:
         return resp['emoji']
 
     @staticmethod
-    def _build_emoji_letter_dict() -> dict:
+    def _build_emoji_char_dict() -> dict:
         """Sets up use of replacing words with slack emojis"""
         a2z = string.ascii_lowercase
         letter_grp = [
             'regional_indicator_',
             'letter-',
+            'alphabet-yellow-',
+            'alphabet-white-'
             'scrabble-'
         ]
 
@@ -490,8 +497,11 @@ class SlackTools:
             ltr_list = []
             for g in grp:
                 ltr_list.append(g[i])
-
             letter_dict[ltr] = ltr_list
+
+        # Add in consistent numbers
+        for i in range(10):
+            letter_dict[f'{i}'] = [f'mana{i}']
 
         # Additional, irregular entries
         addl = {
@@ -506,11 +516,15 @@ class SlackTools:
             'x': ['x'],
             'y': ['slayer_y'],
             'z': ['zabbix'],
-            '.': ['dotdotdot-intensifies', 'period'],
-            '!': ['exclamation', 'heavy_heart_exclamation_mark_ornament', 'grey_exclamation'],
-            '?': ['question', 'grey_question', 'questionman', 'question_block'],
+            '.': ['black_circle', 'period'],
+            '!': ['exclamation', 'heavy_heart_exclamation_mark_ornament', 'grey_exclamation'] +
+                 [f'alphabet-{x}-exclamation' for x in ['yellow', 'white']],
+            '?': ['question', 'grey_question', 'questionman', 'question_block'] +
+                 [f'alphabet-{x}-question' for x in ['yellow', 'white']],
             '"': ['airquotes-start', 'airquotes-end'],
             "'": ['airquotes-start', 'airquotes-end'],
+            "@": [f'alphabet-{x}-at' for x in ['yellow', 'white']],
+            "#": [f'alphabet-{x}-hash' for x in ['yellow', 'white']]
         }
 
         for k, v in addl.items():
@@ -523,7 +537,7 @@ class SlackTools:
     def build_phrase(self, phrase: str) -> str:
         """Build your awesome phrase"""
 
-        letter_dict = self._build_emoji_letter_dict()
+        letter_dict = self._build_emoji_char_dict()
         built_phrase = []
         for letter in list(phrase):
             # Lookup letter

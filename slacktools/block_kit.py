@@ -83,7 +83,7 @@ class BlockKitBase:
     @classmethod
     def build_link(cls, url: str, text: str) -> str:
         """Generates a link into slack's expected format"""
-        return f'<{url}|{text}'
+        return f'<{url}|{text}>'
 
     @classmethod
     def make_confirm_object(cls, title: str = 'Are you sure?', text: str = 'Are you sure you want to do this?',

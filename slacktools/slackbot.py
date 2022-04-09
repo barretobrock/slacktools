@@ -11,7 +11,7 @@ from typing import (
     Optional,
     Callable
 )
-from easylogger import Log
+from loguru import logger
 from slacktools.tools import (
     BlockKitBuilder,
     SlackTools,
@@ -23,7 +23,7 @@ class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, slack_cred_name: str, triggers: List[str], credstore: SecretStore,
                  test_channel: str, commands: dict, cmd_categories: List[str],
-                 debug: bool = False, parent_log: Log = None, use_session: bool = False):
+                 debug: bool = False, parent_log: logger = None, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
@@ -51,7 +51,7 @@ class SlackBotBase(SlackTools):
             cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
-        self._log = Log(parent_log, child_name=self.__class__.__name__)
+        self._log = parent_log.bind(child_name=self.__class__.__name__)
         super().__init__(credstore=credstore, slack_cred_name=slack_cred_name, parent_log=self._log,
                          use_session=use_session)
         self.debug = debug
@@ -99,7 +99,7 @@ class SlackBotBase(SlackTools):
         Returns:
             list of dict, Block Kit-ready help text
         """
-        self._log.debug(f'Building help block')
+        self._log.debug('Building help block')
         blocks = [
             self.bkb.make_block_section(intro, accessory=self.bkb.make_image_element(avi_url, avi_alt)),
             self.bkb.make_block_divider()
