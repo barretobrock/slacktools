@@ -15,6 +15,16 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.2] - 2022-04-08
+#### Added
+ - real tests finally!
+ - more emojis in the character mapper
+ - `loguru` for logging support
+#### Removed
+ - `easylogger` as logger
+#### Fixed
+ - missing completion bracket in slack link builder
+ 
 ### [1.5.1] - 2022-04-08
 #### Added
  - `tox`

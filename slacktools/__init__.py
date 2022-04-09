@@ -11,5 +11,5 @@ from .tools import (
     SecretStore
 )
 
-__version__ = '1.5.1'
-__update_date__ = '2022-04-08_16:01:41'
+__version__ = '1.5.2'
+__update_date__ = '2022-04-08_19:11:59'
