@@ -22,11 +22,11 @@ from slacktools.slack_input_parser import SlackInputParser
 def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, Union[str, List[str], Callable]]]:
     """Reads in commands from a YAML file and builds out their structure, searching for named attributes
     as callables along the way"""
-    def parse_command(regex: str, details: Dict, log: logger) -> Dict[str, Union[str, List[str], Callable]]:
+    def parse_command(grp: str, regex: str, details: Dict, log: logger) -> Dict[str, Union[str, List[str], Callable]]:
         item = {
             'pattern': regex,
             'tags': details.get('tags', []),
-            'group': group,
+            'group': grp,
             'desc': details.get('desc')
         }
         # Determine response
@@ -34,9 +34,11 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
             callable_dict = details.get('response-cmd')  # type: Dict[str, Union[str, List[str]]]
             callable_name = callable_dict.get('callable')  # type: str
             callable_args = callable_dict.get('args', [])  # type: List[str]
-            callable_flags = callable_dict.get('flags')  # type: List[str]
-            if callable_flags is not None:
-                item['flags'] = callable_flags
+
+            opt_flags = details.get('flags')  # type: List[str]
+            if opt_flags is not None:
+                log.debug(f'Adding {len(opt_flags)} to item')
+                item['flags'] = opt_flags
             if callable_args is None:
                 callable_args = []
             log.debug(f'Searching for callable "{callable_name}" in object...')
@@ -54,11 +56,11 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
 
     processed_cmds = []
     for group_name, group_dict in cmd_dict['commands'].items():
-        group = group_name.replace('group-', '')
+        group = group_name.replace('group-', '').title()
         log.debug(f'Working on group {group}...')
         for cmd_regex, cmd_details in group_dict.items():
             log.debug(f'Working on command: {cmd_regex}')
-            processed_cmds.append(parse_command(regex=cmd_regex, details=cmd_details, log=log))
+            processed_cmds.append(parse_command(grp=group, regex=cmd_regex, details=cmd_details, log=log))
 
     return processed_cmds
 
@@ -135,8 +137,8 @@ class SlackTools(SlackInputParser, SlackMethods):
             'regional_indicator_',
             'letter-',
             'alphabet-yellow-',
-            'alphabet-white-'
-            'scrabble-'
+            'alphabet-white-',
+            'scrabble-',
         ]
 
         grp = [['{}{}'.format(y, x) for x in a2z] for y in letter_grp]

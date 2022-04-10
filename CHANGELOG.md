@@ -15,6 +15,13 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.6] - 2022-04-10
+#### Changed
+ - structure of command block now uses tabs to better organise groups
+#### Fixed
+ - Command flags weren't being called properly in the command builder
+ - Malformed list in letter organizer
+ 
 ### [1.5.5] - 2022-04-10
 #### Fixed
  - command read-in was failing due to improper YAML structure

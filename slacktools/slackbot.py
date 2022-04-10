@@ -99,7 +99,7 @@ class SlackBotBase(SlackTools):
                 extra_desc = '\n\t\t'.join([f'*`{x}`*' for x in flags])
                 # Append flags to the end of the description (they'll be tabbed in)
                 desc += f'\n\t_optional flags_\n\t\t{extra_desc}'
-            help_dict[group].append(f'- *`{pattern}`*: {desc}')
+            help_dict[group].append(f' \t*`{pattern}`*: {desc}')
 
         command_frags = []
         for k, v in help_dict.items():
