@@ -15,6 +15,15 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.4] - 2022-04-09
+#### Added
+ - command builder standalone function
+ - PyYAML to reqs
+#### Changed
+ - commands now stored in YAML to better organize base
+ - command dict is now a list with tags!
+ - command list no longer required upon instantiation
+ 
 ### [1.5.3] - 2022-04-09
 #### Added
  - database engine base class & tests for the bots

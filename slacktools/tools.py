@@ -2,17 +2,66 @@
 # -*- coding: utf-8 -*-
 import re
 import string
+from pathlib import Path
+import yaml
 import pandas as pd
 from types import SimpleNamespace
 from typing import (
+    Callable,
     Dict,
-    List
+    List,
+    Union
 )
 from random import randint
 from tabulate import tabulate
 from loguru import logger
 from slacktools.slack_methods import SlackMethods
 from slacktools.slack_input_parser import SlackInputParser
+
+
+def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, Union[str, List[str], Callable]]]:
+    """Reads in commands from a YAML file and builds out their structure, searching for named attributes
+    as callables along the way"""
+    def parse_command(regex: str, details: Dict, log: logger) -> Dict[str, Union[str, List[str], Callable]]:
+        item = {
+            'pattern': regex,
+            'tags': details.get('tags', []),
+            'group': group,
+            'desc': details.get('desc')
+        }
+        # Determine response
+        if 'response-cmd' in details.keys():
+            callable_dict = details.get('response-cmd')  # type: Dict[str, Union[str, List[str]]]
+            callable_name = callable_dict.get('callable')  # type: str
+            callable_args = callable_dict.get('args', [])  # type: List[str]
+            callable_flags = callable_dict.get('flags')  # type: List[str]
+            if callable_flags is not None:
+                item['flags'] = callable_flags
+            if callable_args is None:
+                callable_args = []
+            log.debug(f'Searching for callable "{callable_name}" in object...')
+            callable_obj = getattr(bot_obj, callable_name)  # type: callable
+            if callable_obj is not None:
+                log.debug(f'Binding callable and {len(callable_args)} args to response')
+                item['response'] = [callable_obj] + callable_args
+        elif 'response-txt' in details.keys():
+            log.debug('Binding text to response')
+            item['response'] = details.get('response-txt')
+        return item
+
+    with cmd_yaml_path.open() as f:
+        cmd_dict = yaml.safe_load(f)
+
+    processed_cmds = []
+    for group_dict in cmd_dict['commands']:
+        for group_name, commands in group_dict.items():
+            group = group_name.replace('group-', '')
+            log.debug(f'Working on group {group}...')
+            for cmd_regex, cmd_details in commands.items():
+                log.debug(f'Working on command: {cmd_regex}')
+                processed_cmds.append(parse_command(regex=cmd_regex, details=cmd_details, log=log))
+
+    return processed_cmds
 
 
 class SlackTools(SlackInputParser, SlackMethods):

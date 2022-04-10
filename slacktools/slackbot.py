@@ -22,8 +22,7 @@ from slacktools.slack_input_parser import block_text_converter
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str],
-                 main_channel: str, commands: dict, cmd_categories: List[str],
-                 debug: bool = False, parent_log: logger = None, use_session: bool = False):
+                 main_channel: str, debug: bool = False, parent_log: logger = None, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
@@ -39,18 +38,6 @@ class SlackBotBase(SlackTools):
                         the realm of common API calls e.g., emoji uploads
                     xoxc-token: str, token for uploading emojis
             main_channel: str, the channel to send messages by default
-            commands: dict, all the commands the bot recognizes (to be built into help text)
-                expected keys:
-                    cat: str, the category of the command (for grouping purposes) - must match with categories list
-                    desc: str, description of the command
-                    value: str or list of func & str, the object to return / command to run
-                optional keys:
-                    pattern: str, the human-readable match pattern to show end users
-                    flags: list of dict, shows optional flags to include int he command and what they do
-                        expected keys:
-                            pattern: str, the flag pattern
-                            desc: str, the description of this flag
-            cmd_categories: list of str, the categories to group the above commands in to
             debug: bool, if True, will provide additional info into exceptions
         """
         self._log = parent_log.bind(child_name=self.__class__.__name__)
@@ -65,8 +52,7 @@ class SlackBotBase(SlackTools):
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
         self.main_channel = main_channel
 
-        self.commands = commands
-        self.cmd_categories = cmd_categories
+        self.commands = []
 
         self.triggers = [f'{self.user_id}']
         # User ids are formatted in a different way, so just
@@ -82,7 +68,7 @@ class SlackBotBase(SlackTools):
         #   due to delay in Slack receiving a response. I've yet to figure out how to improve response time
         self.message_events = []
 
-    def update_commands(self, commands: dict):
+    def update_commands(self, commands: List[Dict[str, Union[str, List[str], Callable]]]):
         """Updates the dictionary of commands"""
         self.commands = commands
 
@@ -101,16 +87,19 @@ class SlackBotBase(SlackTools):
             BKitB.make_block_section(intro, accessory=BKitB.make_image_element(avi_url, avi_alt)),
             BKitB.make_block_divider()
         ]
-        help_dict = {cat: [] for cat in self.cmd_categories}
+        groups = list(set([c.get('group') for c in self.commands]))
+        help_dict = {group: [] for group in groups}
 
-        for k, v in self.commands.items():
-            if 'pattern' not in v.keys():
-                v['pattern'] = k
-            if v.get('flags') is not None:
-                extra_desc = '\n\t\t'.join([f'*`{x["pattern"]}`*: {x["desc"]}' for x in v['flags']])
+        for cmd_dict in self.commands:
+            pattern = cmd_dict.get('pattern')
+            group = cmd_dict.get('group')
+            desc = cmd_dict.get('desc')
+            flags = cmd_dict.get('flags')
+            if flags is not None:
+                extra_desc = '\n\t\t'.join([f'*`{x}`*' for x in flags])
                 # Append flags to the end of the description (they'll be tabbed in)
-                v["desc"] += f'\n\t_optional flags_\n\t\t{extra_desc}'
-            help_dict[v['cat']].append(f'- *`{v["pattern"]}`*: {v["desc"]}')
+                desc += f'\n\t_optional flags_\n\t\t{extra_desc}'
+            help_dict[group].append(f'- *`{pattern}`*: {desc}')
 
         command_frags = []
         for k, v in help_dict.items():
@@ -191,7 +180,8 @@ class SlackBotBase(SlackTools):
         self._log.debug(f'Incoming message: {message}')
 
         is_matched = False
-        for regex, resp_dict in self.commands.items():
+        for resp_dict in self.commands:
+            regex = resp_dict.get('pattern')
             match = re.match(regex, message)
             if match is not None:
                 self._log.debug(f'Matched on pattern: {regex}')
