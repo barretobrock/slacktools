@@ -53,13 +53,12 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
         cmd_dict = yaml.safe_load(f)
 
     processed_cmds = []
-    for group_dict in cmd_dict['commands']:
-        for group_name, commands in group_dict.items():
-            group = group_name.replace('group-', '')
-            log.debug(f'Working on group {group}...')
-            for cmd_regex, cmd_details in commands.items():
-                log.debug(f'Working on command: {cmd_regex}')
-                processed_cmds.append(parse_command(regex=cmd_regex, details=cmd_details, log=log))
+    for group_name, group_dict in cmd_dict['commands'].items():
+        group = group_name.replace('group-', '')
+        log.debug(f'Working on group {group}...')
+        for cmd_regex, cmd_details in group_dict.items():
+            log.debug(f'Working on command: {cmd_regex}')
+            processed_cmds.append(parse_command(regex=cmd_regex, details=cmd_details, log=log))
 
     return processed_cmds
 

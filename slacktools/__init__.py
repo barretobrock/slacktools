@@ -11,5 +11,5 @@ from .slackbot import SlackBotBase
 from .slack_methods import SlackMethods
 from .tools import SlackTools
 
-__version__ = '1.5.4'
-__update_date__ = '2022-04-09_21:05:51'
+__version__ = '1.5.5'
+__update_date__ = '2022-04-10_08:34:43'

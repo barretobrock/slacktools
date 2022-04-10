@@ -15,6 +15,10 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.5] - 2022-04-10
+#### Fixed
+ - command read-in was failing due to improper YAML structure
+ 
 ### [1.5.4] - 2022-04-09
 #### Added
  - command builder standalone function
