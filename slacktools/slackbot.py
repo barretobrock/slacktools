@@ -15,6 +15,7 @@ from typing import (
 )
 from loguru import logger
 from slacktools.tools import SlackTools
+from slacktools.slack_input_parser import SlackInputParser
 from slacktools.block_kit import BlockKitBuilder as BKitB
 from slacktools.slack_input_parser import block_text_converter
 
@@ -80,15 +81,15 @@ class SlackBotBase(SlackTools):
         # group = command_dict.get('group')
         desc = command_dict.get('desc')
         # Optionals
-        flags = command_dict.get('flags', [])       # e.g. "-t <type>"
-        examples = command_dict.get('examples', [])
-        if flags is not None:
-            flag_desc = f'\n{tab_char * 2}'.join([f'*`{x}`*' for x in flags])
-            desc += f'\n{tab_char * 2}Optional Flags:\n{tab_char * 3}{flag_desc}'
-        if examples is not None:
-            example_desc = f'\n{tab_char * 2}'.join([f'*`{x}`*' for x in examples])
-            desc += f'\n{tab_char * 2}Example Usage:\n{tab_char * 3}{example_desc}'
-        return f'{tab_char}*`{pattern}`*: {desc}'
+        flags = command_dict.get('flags')       # e.g. "-t <type>"
+        examples = command_dict.get('examples')
+        if flags is not None and len(flags) > 0:
+            flag_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in flags])
+            desc += f'\n{tab_char * 1}Optional Flags:\n{tab_char}{flag_desc}'
+        if examples is not None and len(examples) > 0:
+            example_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in examples])
+            desc += f'\n{tab_char * 1}Example Usage:\n{tab_char}{example_desc}\n'
+        return f'*`{pattern}`*: {desc}\n'
 
     def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List[dict]:
         """Builds bot's description of functions into a giant wall of help text
@@ -101,30 +102,69 @@ class SlackBotBase(SlackTools):
             list of dict, Block Kit-ready help text
         """
         self._log.debug('Building help block')
+        # Build out some explanation of the main commands
+        main_cmd_txt = ''
+        for cmd_dict in self.commands:
+            if 'main' not in cmd_dict.get('tags', []):
+                continue
+            main_cmd_txt += self.build_command_output(cmd_dict)
+
+        # Then build out a list of the groups
+        groups = list(set([c.get('group') for c in self.commands]))
+        group_txt = ''.join(sorted([f' *`{g}`* ' for g in groups]))
+        # Then build out a list of the tags
+        tags = []
+        for cmd in self.commands:
+            tags_raw = cmd.get('tags')
+            if tags_raw is not None:
+                tags += tags_raw
+        tags = list(set(tags))
+        tags_txt = ''.join(sorted([f' *`{g}`* ' for g in tags]))
+
         blocks = [
             BKitB.make_block_section(intro, accessory=BKitB.make_image_element(avi_url, avi_alt)),
-            BKitB.make_block_divider()
+            BKitB.make_block_divider(),
+            BKitB.make_block_section(main_cmd_txt),
+            BKitB.make_block_divider(),
+            BKitB.make_block_section(f'Searching for more commands:\nGroups: {group_txt}\nTags: {tags_txt}')
         ]
-        groups = list(set([c.get('group') for c in self.commands]))
-        help_dict = {group: [] for group in groups}
-
-        for cmd_dict in self.commands:
-            cmd_txt = self.build_command_output(cmd_dict)
-            group = cmd_dict.get('group')
-            help_dict[group].append(cmd_txt)
-
-        command_frags = []
-        for k, v in help_dict.items():
-            list_of_cmds = "\n".join(v)
-            command_frags.append(f'*{k.title()} Commands*:\n{list_of_cmds}')
-
-        for command in command_frags:
-            blocks += [
-                BKitB.make_block_section(command),
-                BKitB.make_block_divider()
-            ]
 
         return blocks
+
+    def search_help_block(self, message: str):
+        """Takes in a message and filters command descriptions for output
+
+        Examples:
+            >>> search help -g <group-name>
+            >>> search help -t <tag-name>
+        """
+        self.log.debug(f'Got help search command: {message}')
+        group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)
+        tag = SlackInputParser.get_flag_from_command(message, flags=['t'], default=None)
+
+        if group is not None:
+            self.log.debug(f'Filtering on group: {group}')
+            filtered_by = f'group: {group}'
+            cmd_list = [x for x in self.commands if x.get('group', '') == group]
+        elif tag is not None:
+            self.log.debug(f'Filtering on tag: {tag}')
+            filtered_by = f'tag: {tag}'
+            cmd_list = [x for x in self.commands if tag in x.get('tags', [])]
+        else:
+            self.log.debug('Unable to filter on group or tag. Responding to user.')
+            return 'Unable to filter on commands without a tag or group. Please either include ' \
+                   '`-t <tag-name>` or `-g <group-name>`'
+
+        self.log.debug(f'Found {len(cmd_list)} cmds matching {filtered_by}')
+        result = ''
+        for cmd_dict in cmd_list:
+            result += self.build_command_output(cmd_dict)
+
+        return [
+            BKitB.make_context_section(f'*`{len(cmd_list)}/{len(self.commands)}`* commands '
+                                       f'filtered by {filtered_by}'),
+            BKitB.make_block_section(result)
+        ]
 
     def parse_direct_mention(self, message: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         """Parses user and other text from direct mention"""

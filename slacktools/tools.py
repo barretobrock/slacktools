@@ -36,9 +36,13 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
             callable_args = callable_dict.get('args', [])  # type: List[str]
 
             opt_flags = details.get('flags')  # type: List[str]
+            opt_examples = details.get('examples')  # type: List[str]
             if opt_flags is not None:
-                log.debug(f'Adding {len(opt_flags)} to item')
+                log.debug(f'Adding {len(opt_flags)} flag(s) to item')
                 item['flags'] = opt_flags
+            if opt_examples is not None:
+                log.debug(f'Adding {len(opt_examples)} example(s) to item')
+                item['examples'] = opt_examples
             if callable_args is None:
                 callable_args = []
             log.debug(f'Searching for callable "{callable_name}" in object...')
@@ -56,7 +60,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
 
     processed_cmds = []
     for group_name, group_dict in cmd_dict['commands'].items():
-        group = group_name.replace('group-', '').title()
+        group = group_name.replace('group-', '').replace('-', ' ').lower()
         log.debug(f'Working on group {group}...')
         for cmd_regex, cmd_details in group_dict.items():
             log.debug(f'Working on command: {cmd_regex}')
