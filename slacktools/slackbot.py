@@ -72,6 +72,24 @@ class SlackBotBase(SlackTools):
         """Updates the dictionary of commands"""
         self.commands = commands
 
+    @staticmethod
+    def build_command_output(command_dict: Dict[str, Union[str, List[str]]]) -> str:
+        """Takes in a single command dictionary and formats it for output in a Slack message"""
+        tab_char = ':blank:'  # this is wonky, but it works much better than \t in Slack!
+        pattern = command_dict.get('pattern')
+        # group = command_dict.get('group')
+        desc = command_dict.get('desc')
+        # Optionals
+        flags = command_dict.get('flags', [])       # e.g. "-t <type>"
+        examples = command_dict.get('examples', [])
+        if flags is not None:
+            flag_desc = f'\n{tab_char * 2}'.join([f'*`{x}`*' for x in flags])
+            desc += f'\n{tab_char * 2}Optional Flags:\n{tab_char * 3}{flag_desc}'
+        if examples is not None:
+            example_desc = f'\n{tab_char * 2}'.join([f'*`{x}`*' for x in examples])
+            desc += f'\n{tab_char * 2}Example Usage:\n{tab_char * 3}{example_desc}'
+        return f'{tab_char}*`{pattern}`*: {desc}'
+
     def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List[dict]:
         """Builds bot's description of functions into a giant wall of help text
         Args:
@@ -91,15 +109,9 @@ class SlackBotBase(SlackTools):
         help_dict = {group: [] for group in groups}
 
         for cmd_dict in self.commands:
-            pattern = cmd_dict.get('pattern')
+            cmd_txt = self.build_command_output(cmd_dict)
             group = cmd_dict.get('group')
-            desc = cmd_dict.get('desc')
-            flags = cmd_dict.get('flags')
-            if flags is not None:
-                extra_desc = '\n\t\t'.join([f'*`{x}`*' for x in flags])
-                # Append flags to the end of the description (they'll be tabbed in)
-                desc += f'\n\t_optional flags_\n\t\t{extra_desc}'
-            help_dict[group].append(f' \t*`{pattern}`*: {desc}')
+            help_dict[group].append(cmd_txt)
 
         command_frags = []
         for k, v in help_dict.items():
