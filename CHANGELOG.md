@@ -15,6 +15,12 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.8] - 2022-04-15
+#### Added
+ - Search commands
+#### Fixed
+ - Help block now properly builds
+ 
 ### [1.5.7] - 2022-04-15
 #### Changed
  - Command help section builder broken out so it can be shared in command search methods
