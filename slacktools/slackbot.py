@@ -133,10 +133,6 @@ class SlackBotBase(SlackTools):
 
     def search_help_block(self, message: str):
         """Takes in a message and filters command descriptions for output
-
-        Examples:
-            >>> search help -g <group-name>
-            >>> search help -t <tag-name>
         """
         self.log.debug(f'Got help search command: {message}')
         group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)
@@ -210,6 +206,7 @@ class SlackBotBase(SlackTools):
                 if not isinstance(e, RuntimeError):
                     exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                     if self.debug:
+                        self._log.error(f'Exception occurred: {exception_msg}', e)
                         blocks = [
                             BKitB.make_context_section([
                                 BKitB.markdown_section(f"Exception occurred: \n*`{exception_msg}`*")
