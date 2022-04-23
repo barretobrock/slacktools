@@ -1,0 +1,395 @@
+# Expected structure for commands:
+#   <cmd_regex>:
+#       name: <command_name>
+#       tags: <comma-separated-tags>
+#       desc: <description>
+#       # Response should be one of these:
+#       response-cmd:
+#           A dynamic command that's mapped to the dict on instantiation via attribute lookup
+#           callable: <name_of_callable>
+#           args:
+#               # Note: these arg names should match what's coming in from an event
+#               #   (e.g., user, channel, message)
+#               - list
+#               - of
+#               - args
+#       response-txt: something <@{user}>
+
+commands:
+    group-support:
+        ^help:
+            tags:
+                - support
+                - main
+            desc: Description of the main commands I respond to, along with other groups and tags to search my other commands
+            response-cmd:
+                callable: generate_intro
+        ^(search\s?help|shelp):
+            tags:
+                - support
+                - main
+            desc: Search the command descriptions by tag or group
+            examples:
+                - search help -t support
+                - search help -g okr
+                - shelp -g okr
+            response-cmd:
+                callable: search_help_block
+                args:
+                    - message
+        ^about:
+            tags:
+                - debug
+                - main
+            desc: Bootup time of Viktor's current instance, his current version and last update date
+            response-cmd:
+                callable: get_bootup_msg
+        ^m(ain\s?menu|m):
+            tags:
+                - ui
+                - settings
+                - main
+            desc: Wiktor's wain wenu
+            examples:
+                - mm
+                - main menu
+                - mainmenu
+            response-cmd:
+                callable: prebuild_main_menu
+                args:
+                    - user
+                    - channel
+        ^add emoji:
+            tags:
+                - emoji
+                - ui
+            desc: Add emojis in 2 or fewer steps!
+            response-cmd:
+                callable: add_emoji_form_p1
+                args:
+                    - user
+                    - channel
+                    - message
+        good bo[tiy]:
+            tags:
+                - random
+            desc: Give the bot a little praise
+            response-txt: thanks <@{user}>!
+
+        ^time$:
+            tags:
+                - debug
+            desc: Display current server time
+            response-cmd:
+                callable: get_time
+
+        ^emoji[s]? like:
+            tags:
+                - emoji
+            desc: Get emojis matching the regex pattern
+            response-cmd:
+                callable: get_emojis_like
+                args:
+                    - match_pattern
+                    - message
+        ^emoji my words:
+            tags:
+                - emoji
+            desc: Turn your words into emoji
+            response-cmd:
+                callable: word_emoji
+                args:
+                    - message
+                    - match_pattern
+        ^((button|btn)\s?game|bg):
+            tags:
+                - games
+                - ui
+            desc: Play a button game. win (or lose..........)
+            response-cmd:
+                callable: button_game
+                args:
+                    - message
+        ^wfh\s?(time|epoch):
+            tags:
+                - tow
+                - main
+            desc: Prints the current WFH epoch time
+            response-cmd:
+                callable: wfh_epoch
+    group-okr:
+        ^onbo[a]?r[d]?ing$:
+            tags:
+                - okr
+            desc: Prints out all the material needed to get a new OKR employee up to speed!
+            response-cmd:
+                callable: onboarding_docs
+        ^(gsheet[s]?|show) link$:
+            tags:
+                - okr
+            desc: Shows link to Viktor\'s GSheet (acronyms, insults, etc..)
+            response-cmd:
+                callable: show_gsheets_link
+        ^(update\s?level|level\s?up):
+            tags:
+                - okr
+                - user
+            desc: Accesses an employees LevelUp registry and increments their level! No roundtables needed!
+            response-cmd:
+                callable: build_update_user_level_form
+        ^(gib)?\s?ltits:
+            tags:
+                - okr
+                - user
+            desc: Distribute or withdraw LTITs from an employee's account
+            response-cmd:
+                callable: build_update_user_ltits_form_p1
+        ^show (my )?perk[s]?:
+            tags:
+                - okr
+                - user
+            desc: Shows the perks an employee has access to at their current level
+            response-cmd:
+                callable: show_my_perks
+                args:
+                    - user
+        ^show all perks:
+            tags:
+                - okr
+                - user
+            desc: Shows all perks currently available at all levels at OKR
+            response-cmd:
+                callable: show_all_perks
+        ^show (roles|doo[td]ies)$:
+            tags:
+                - okr
+                - roles
+                - user
+            desc: Shows current roles of all the wonderful workers of OKR
+            response-cmd:
+                callable: build_role_txt
+                args:
+                    - channel
+        ^update (role|doo[td]ies):
+            tags:
+                - okr
+                - roles
+                - user
+            desc: Updates OKR roles of user (or other user). Useful during a lightning reorg.
+            response-cmd:
+                callable: new_role_form_p1
+                args:
+                    - user
+                    - channel
+        ^show my (role|doo[td]ie)$:
+            tags:
+                - okr
+                - roles
+                - user
+            desc: Shows your current role as of the last reorg.
+            response-cmd:
+                callable: build_role_txt
+                args:
+                    - channel
+                    - user
+    group-linguistics:
+        ^e[nt]\s+:
+            tags:
+                - linguistics
+            desc: Offers a translation of an Estonian word into an English word or vice-versa
+            response-cmd:
+                callable: prep_message_for_translation
+                args:
+                    - message
+                    - match_pattern
+        ^ekss\s+:
+            tags:
+                - linguistics
+            desc: N2ided Eesti kirjakeele seletuss6naraamatust
+            response-cmd:
+                callable: prep_message_for_examples
+                args:
+                    - message
+                    - match_pattern
+        ^lemma\s+:
+            tags:
+                - linguistics
+            desc: Determines the lemma of a word (Currently Estonian only)
+            response-cmd:
+                callable: prep_message_for_root
+                args:
+                    - message
+                    - match_pattern
+        ^ety\s:
+            tags:
+                - linguistics
+            desc: Gets the etymology of a given word
+            response-cmd:
+                callable: get_etymology
+                args:
+                    - message
+                    - match_pattern
+    group-random:
+        ^access:
+            tags:
+                - random
+            desc: Try to gain access to something - whether that be the power grid to your failing theme park on an island off the coast of Costa Rica or something else idk man...
+            response-cmd:
+                callable: access_something
+        ^(quote|ransom letter) me:
+            tags:
+                - random
+                - emoji
+            desc: Turns your quote into a... ransom letter? idk.
+            response-cmd:
+                callable: quote_me
+                args:
+                    - message
+                    - match_pattern
+        ^(he(y|llo)|howdy|salu|hi|qq|wyd|greet|servus|ter|bonj):
+            tags:
+                - random
+            desc: Responds appropriately to a simple greeting
+            response-cmd:
+                callable: sh_response
+        jackhandey:
+            tags:
+                - random
+            desc: Gives you a nice bit of wisdom from the sage Jack Handey
+            response-cmd:
+                callable: jackhandey
+        .*inspir.*:
+            tags:
+                - random
+            desc: Uploads an inspirational picture
+            response-cmd:
+                callable: inspirational
+                args:
+                    - channel
+        .*tihi.*:
+            tags:
+                - random
+            desc: Giggles.
+            response-cmd:
+                callable: giggle
+        ^shurg:
+            tags:
+                - random
+            desc: ¯\_(ツ)_/¯
+            response-cmd:
+                callable: shurg
+                args:
+                    - message
+        ^(randcap|mock):
+            tags:
+                - random
+            desc: whaT dO yOu thiNK iT Does
+            response-cmd:
+                callable: randcap
+                args:
+                    - message
+        ^uwu:
+            tags:
+                - random
+            desc: Makes text pwettiew and easiew to uwundewstand (defaults to highest uwu level)
+            response-cmd:
+                callable: uwu
+                args:
+                    - raw_message
+        (thanks|[no,\s]*\s(t[h]?ank\s?(you|u))):
+            tags:
+                - random
+            desc: Compete with Viktor over who's the more polite one
+            response-cmd:
+                callable: overly_polite
+                args:
+                    - message
+        ^sauce$:
+            tags:
+                - random
+            desc: Handle some ridicule...
+            response-txt: ay <@{user}> u got some jokes!
+        ^speak$:
+            tags:
+                - random
+            desc: _Really_ basic stuff here
+            response-txt: woof
+        ^dadjoke:
+            tags:
+                - random
+            desc: Exactly one dadjoke.
+            response-cmd:
+                callable: dadjoke
+        ^(diddle my brain|affirmation):
+            tags:
+                - random
+            desc: A positive brain-diddling
+            response-cmd:
+                callable: affirmation
+        ^(ag|acro[-]?guess):
+            tags:
+                - random
+                - tow
+            desc: Guess what an acryonym might mean!
+            flags:
+                - -(g|group) <acronym-group>
+                - -n <n-times>
+            response-cmd:
+                callable: guess_acronym
+                args:
+                    - message
+        ^ins[ul]{2}t:
+            tags:
+                - random
+            desc: Generates an insult.
+            flags:
+                - -(g|group) <insult-group>
+            response-cmd:
+                callable: insult
+                args:
+                    - message
+        ^phrases?:
+            tags:
+                - random
+            desc: Generates a phrase from an ordered collection of words.
+            flags:
+                - -(g|group) <phrase-group>
+                - -n <n-times>
+            response-cmd:
+                callable: phrase_generator
+                args:
+                    - message
+        ^compliment:
+            tags:
+                - random
+            desc: Generates a :q:compliment:q:.
+            flags:
+                - -(g|group) <compliment-group>
+            response-cmd:
+                callable: compliment
+                args:
+                    - raw_message
+                    - user
+        ^facts?:
+            tags:
+                - random
+            desc: Generates a fact!
+            response-cmd:
+                callable: facts
+        ^conspiracy\s?facts?:
+            tags:
+                - random
+                - tow
+            desc: Generates a conspiracy fact!
+            response-cmd:
+                callable: conspiracy_fact
+        ^add conspiracyfacts?:
+            tags:
+                - random
+                - tow
+            desc: Adds a conspiracy fact!
+            response-cmd:
+                callable: add_ifact_form
+                args:
+                    - user
+                    - channel
