@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "slacktools"
-version = '1.5.9'
+version = '1.6.0'
 description = "A common library for working with Slack API"
 authors = ["bobrock <bobrock@tuta.io>"]
 license = "MIT"
@@ -16,7 +16,7 @@ packages = [
 include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 Flask = "2.1.1"
 pandas = "^1.4.2"
 loguru = "0.6.0"
