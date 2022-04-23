@@ -15,6 +15,11 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.5.9] - 2022-04-23
+#### Added
+ - Python 3.10 support
+ - mock_commands to help with testing
+ 
 ### [1.5.8] - 2022-04-15
 #### Added
  - Search commands
