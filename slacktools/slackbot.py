@@ -184,17 +184,23 @@ class SlackBotBase(SlackTools):
         """Takes in an Events API message-triggered event dict and determines
          if a command was issued to the bot"""
         event = event_data['event']
+        event_type = event['type']
+        raw_text = event['text']
+        channel_id = event['channel']
+        event_ts = event['ts']
+        thread_ts = event.get('thread_ts')
         msg_packet = None
-        if event['type'] == 'message' and "subtype" not in event:
-            trigger, message, raw_message = self.parse_direct_mention(event['text'])
+        if event_type == 'message' and "subtype" not in event:
+            trigger, message, raw_message = self.parse_direct_mention(raw_text)
             if trigger in self.triggers:
                 # Build a message hash
-                msg_hash = f'{event["channel"]}_{event["ts"]}'
+                msg_hash = f'{channel_id}_{event_ts}'
                 if msg_hash not in self.message_events:
                     self.message_events.append(msg_hash)
                     msg_packet = {
                         'message': message.strip(),
-                        'raw_message': raw_message.strip()
+                        'raw_message': raw_message.strip(),
+                        'thread_ts': thread_ts
                     }
                     # Add in all the other stuff
                     msg_packet.update(event)
@@ -216,16 +222,18 @@ class SlackBotBase(SlackTools):
                                 BKitB.markdown_section(f'```{traceback.format_exc()}```')
                             ])
                         ]
-                        self.send_message(msg_packet['channel'], message='', blocks=blocks)
+                        self.send_message(msg_packet['channel'], message='', blocks=blocks, thread_ts=thread_ts)
                     else:
                         self._log.error(f'Exception occurred: {exception_msg}', e)
-                        self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```")
+                        self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```",
+                                          thread_ts=thread_ts)
 
     def handle_command(self, event_dict: dict):
         """Handles a bot command if it's known"""
         response = None
         message = event_dict['message']
         channel = event_dict['channel']
+        thread_ts = event_dict.get('thread_ts')
         self._log.debug(f'Incoming message: {message}')
 
         is_matched = False
@@ -284,9 +292,9 @@ class SlackBotBase(SlackTools):
                     # Response likely has some curly braces in it that disrupt str.format().
                     # Pass string without formatting
                     pass
-                self.send_message(channel, response)
+                self.send_message(channel, response, thread_ts=thread_ts)
             elif isinstance(response, list):
-                self.send_message(channel, '', blocks=response)
+                self.send_message(channel, '', blocks=response, thread_ts=thread_ts)
 
     @staticmethod
     def call_command(cmd: Callable, *args, **kwargs):
@@ -350,11 +358,12 @@ class SlackBotBase(SlackTools):
             return block_text_converter(blocks=last_msg['blocks'], callable_list=callable_list)
         return last_msg['text']
 
-    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None):
+    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None,
+                             thread_ts: str = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
-            self.send_message(self.main_channel, message)
+            self.send_message(self.main_channel, message, thread_ts=thread_ts)
         elif blocks is not None:
-            self.send_message(self.main_channel, message='', blocks=blocks)
+            self.send_message(self.main_channel, message='', blocks=blocks, thread_ts=thread_ts)
         else:
             raise ValueError('No data passed for message.')

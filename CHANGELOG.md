@@ -15,6 +15,10 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.6.1] - 2022-05-14
+#### Added
+ - in-thread messaging support
+ 
 ### [1.6.0] - 2022-04-23
 #### Added
  - Python 3.10 support
