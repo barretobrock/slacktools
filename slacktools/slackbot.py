@@ -185,12 +185,12 @@ class SlackBotBase(SlackTools):
          if a command was issued to the bot"""
         event = event_data['event']
         event_type = event['type']
-        raw_text = event['text']
-        channel_id = event['channel']
-        event_ts = event['ts']
+        raw_text = event.get('text')
+        channel_id = event.get('channel')
+        event_ts = event.get('ts')
         thread_ts = event.get('thread_ts')
         msg_packet = None
-        if event_type == 'message' and "subtype" not in event:
+        if event_type == 'message' and "subtype" not in event.keys():
             trigger, message, raw_message = self.parse_direct_mention(raw_text)
             if trigger in self.triggers:
                 # Build a message hash
