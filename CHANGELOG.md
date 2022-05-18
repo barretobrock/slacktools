@@ -15,6 +15,10 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.6.2] - 2022-05-18
+#### Fixed
+ - Events structure in Slack changes because it's sneaky. This change makes events parsing a tad more flexible.
+ 
 ### [1.6.1] - 2022-05-14
 #### Added
  - in-thread messaging support
