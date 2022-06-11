@@ -77,4 +77,3 @@ class CompositionObjects(BaseBlock):
         return {
             'trigger_actions_on': [x.name for x in dispatch_actions_list]
         }
-

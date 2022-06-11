@@ -21,9 +21,16 @@ class StringExceededMaxLengthException(Exception):
 
 
 class DateFormatType(enum.Enum):
-    date_num = enum.auto()  # %Y-%m-%d
-    date = enum.auto()           # %B %d, %Y
-    date_short = enum.auto()  # %B %d, %Y
+    default = '{date_short_pretty} at {time_secs}'
+    date_num = '{date_num}'                     # %Y-%m-%d
+    date = '{date}'                             # %B %dth, %Y
+    date_short = '{date_short}'                 # %b %d, %Y
+    date_long = '{date_long}'                   # %A, %B %dth, %Y
+    date_pretty = '{date_pretty}'               # yesterday, today => date
+    date_short_pretty = '{date_short_pretty}'   # yesterday, today => date_short
+    date_long_pretty = '{date_long_pretty}'     # yesterday, today => date_long
+    time = '{time}'                             # %H:%M
+    time_secs = '{time_secs}'                   # %H:%M:%S
 
 
 class BaseBlock:
@@ -53,7 +60,13 @@ class BaseBlock:
         return f'<{url}|{text}>'
 
     @classmethod
-    def localize_dates(cls, dt_obj: Union[date, datetime], format_type: DateFormatType) -> str:
+    def _build_date_command(cls, timestamp: int, date_format_type: DateFormatType, fallback: datetime,
+                            fallback_format: str = '%F %T %Z') -> str:
+        return f'<!date^{timestamp}^{date_format_type.value}|{fallback.astimezone():{fallback_format}}>'
+
+    @classmethod
+    def localize_dates(cls, dt_obj: Union[date, datetime], format_type: DateFormatType,
+                       fallback_format: str = '%F %T %Z') -> str:
         """Converts a date object into timestamp and places it in a text object that Slack knows how to parse
         to show localized dates/times for the end user
         References:
@@ -61,7 +74,8 @@ class BaseBlock:
         """
         if isinstance(dt_obj, date):
             dt_obj = datetime.combine(dt_obj, time.min)
-        return f'<!date^{int(round(dt_obj.timestamp()))}^{format_type.name}|{dt_obj.astimezone():%F %T %Z}>'
+        return cls._build_date_command(timestamp=int(round(dt_obj.timestamp())), date_format_type=format_type,
+                                       fallback=dt_obj, fallback_format=fallback_format)
 
     @classmethod
     def _text(cls, text: str) -> str:
@@ -94,32 +108,3 @@ class BaseBlock:
             'emoji': False,
             'verbatim': verbatim
         }
-
-
-    # TODO: Refactor below
-    # @classmethod
-    # def build_accessory_section(cls, accessory_type: str, action_id: str = None, placeholder_txt: str = None,
-    #                             url: str = None, text: str = None, image_url: str = None, alt_text: str = None,
-    #                             value: str = None, options_list: ListOfNestedDicts = None) -> \
-    #         Union[NestedDict, BaseDict]:
-    #     """Makes an accessory section for a given element"""
-    #     # Optional attributes that are added if their values aren't empty
-    #     optionals = {
-    #         'url': url,
-    #         'action_id': action_id,
-    #         'value': value,
-    #         'placeholder': cls.plaintext_section(placeholder_txt) if placeholder_txt is not None else None,
-    #         'text': cls.plaintext_section(text) if text is not None else None,
-    #         'options': options_list,
-    #         'image_url': image_url,
-    #         'alt_text': alt_text,
-    #     }
-    #     accessory_dict = {
-    #         'type': accessory_type
-    #     }
-    #     for k, v in optionals.items():
-    #         if v is not None:
-    #             accessory_dict[k] = v
-    #
-    #     return accessory_dict
-
