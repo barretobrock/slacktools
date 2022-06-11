@@ -22,8 +22,9 @@ from slacktools.slack_input_parser import block_text_converter
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str],
-                 main_channel: str, debug: bool = False, parent_log: logger = None, use_session: bool = False):
+    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str,
+                 is_post_exceptions: bool = False, debug: bool = False, parent_log: logger = None,
+                 use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
@@ -43,6 +44,7 @@ class SlackBotBase(SlackTools):
         """
         self._log = parent_log.bind(child_name=self.__class__.__name__)
         super().__init__(bot_cred_entry=bot_cred_entry, parent_log=self._log, use_session=use_session)
+        self.is_post_exceptions = is_post_exceptions
         self.debug = debug
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
@@ -122,11 +124,17 @@ class SlackBotBase(SlackTools):
         tags_txt = ''.join(sorted([f' *`{g}`* ' for g in tags]))
 
         blocks = [
-            BKitB.make_block_section(intro, accessory=BKitB.make_image_element(avi_url, avi_alt)),
-            BKitB.make_block_divider(),
-            BKitB.make_block_section(main_cmd_txt),
-            BKitB.make_block_divider(),
-            BKitB.make_block_section(f'Searching for more commands:\nGroups: {group_txt}\nTags: {tags_txt}')
+            BKitB.make_section_block(
+                text_obj=BKitB.markdown_section(text=intro),
+                accessory=BKitB.make_image_block(image_url=avi_url, alt_text=avi_alt, title=avi_alt)
+            ),
+            BKitB.make_divider_block(),
+            BKitB.make_section_block(BKitB.markdown_section(text=main_cmd_txt)),
+            BKitB.make_divider_block(),
+            BKitB.make_section_block(
+                text_obj=BKitB.markdown_section(f'Search more commands: `shelp -g` or `shelp -t` and apply:\n'
+                                                f'Groups: {group_txt}\nTags: {tags_txt}')
+            )
         ]
 
         return blocks
@@ -157,9 +165,11 @@ class SlackBotBase(SlackTools):
             result += self.build_command_output(cmd_dict)
 
         return [
-            BKitB.make_context_section(f'*`{len(cmd_list)}/{len(self.commands)}`* commands '
-                                       f'filtered by {filtered_by}'),
-            BKitB.make_block_section(result)
+            BKitB.make_context_block(
+                elements=[BKitB.markdown_section(text=f'*`{len(cmd_list)}/{len(self.commands)}`* commands '
+                                                      f'filtered by {filtered_by}')]
+            ),
+            BKitB.make_section_block(text_obj=BKitB.markdown_section(text=result))
         ]
 
     def parse_direct_mention(self, message: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -209,18 +219,22 @@ class SlackBotBase(SlackTools):
             try:
                 self.handle_command(msg_packet)
             except Exception as e:
-                if not isinstance(e, RuntimeError):
+                if not isinstance(e, RuntimeError) and self.is_post_exceptions:
                     exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                     if self.debug:
                         self._log.error(f'Exception occurred: {exception_msg}', e)
                         blocks = [
-                            BKitB.make_context_section([
-                                BKitB.markdown_section(f"Exception occurred: \n*`{exception_msg}`*")
-                            ]),
-                            BKitB.make_block_divider(),
-                            BKitB.make_context_section([
-                                BKitB.markdown_section(f'```{traceback.format_exc()}```')
-                            ])
+                            BKitB.make_context_block(
+                                elements=[BKitB.markdown_section(
+                                    text=f"Exception occurred: \n*`{exception_msg}`*"
+                                )]
+                            ),
+                            BKitB.make_divider_block(),
+                            BKitB.make_context_block(
+                                elements=[BKitB.markdown_section(
+                                    text=f'```{traceback.format_exc()}```'
+                                )]
+                            )
                         ]
                         self.send_message(msg_packet['channel'], message='', blocks=blocks, thread_ts=thread_ts)
                     else:
