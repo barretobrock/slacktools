@@ -1,33 +1,20 @@
+import enum
 from typing import (
     List,
-    Tuple,
-    TypedDict
+    Tuple
 )
-from slacktools.block_kit.base import (
-    BaseBlock,
-    MarkdownTextObjectType,
-    PlainTextObjectType
+from slacktools.block_kit.base import BaseBlock
+from slacktools.block_kit.types import (
+    ConfirmationDialogType,
+    DispatchActionType,
+    OptionType,
+    OptionGroupType
 )
 
 
-class ConfirmationDialogType(TypedDict):
-    title: PlainTextObjectType
-    text: MarkdownTextObjectType
-    confirm: PlainTextObjectType
-    deny: PlainTextObjectType
-    style: str
-
-
-class OptionType(TypedDict):
-    text: MarkdownTextObjectType
-    value: str
-    description: PlainTextObjectType
-    url: str
-
-
-class OptionGroupType(TypedDict):
-    label: PlainTextObjectType
-    options: List[OptionType]
+class DispatchActions(enum.Enum):
+    on_enter_pressed = 0
+    on_character_entered = 1
 
 
 class CompositionObjects(BaseBlock):
@@ -83,3 +70,11 @@ class CompositionObjects(BaseBlock):
             'label': cls.plaintext_section(text=label),
             'options': [cls.make_option_object(*x) for x in options]
         }
+
+    @classmethod
+    def make_dispatch_action_configuration(cls, dispatch_actions_list: List[DispatchActions]) -> \
+            DispatchActionType:
+        return {
+            'trigger_actions_on': [x.name for x in dispatch_actions_list]
+        }
+

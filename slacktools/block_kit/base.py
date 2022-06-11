@@ -7,23 +7,13 @@ from typing import (
     Dict,
     List,
     Tuple,
-    TypedDict,
     Union
 )
 import enum
-
-
-class BaseElementType(TypedDict):
-    type: str
-
-
-class PlainTextObjectType(BaseElementType):
-    text: str
-    emoji: bool
-
-
-class MarkdownTextObjectType(PlainTextObjectType):
-    verbatim: bool
+from slacktools.block_kit.types import (
+    MarkdownTextObjectType,
+    PlainTextObjectType
+)
 
 
 class StringExceededMaxLengthException(Exception):

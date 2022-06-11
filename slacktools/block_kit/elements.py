@@ -12,103 +12,25 @@ from typing import (
     Union
 )
 import enum
-from slacktools.block_kit.compositions import (
+from slacktools.block_kit.base import BaseBlock
+from slacktools.block_kit.types import (
+    ButtonElementType,
+    CheckboxElementType,
     ConfirmationDialogType,
+    DatePickerElementType,
+    DispatchActionType,
+    ImageElementType,
+    MultiSelectStaticMenuType,
+    MultiSelectUsersMenuType,
     OptionType,
-    OptionGroupType
+    OptionGroupType,
+    OverflowMenuType,
+    PlainTextInputType,
+    RadioButtonGroupType,
+    StaticMenuType,
+    TimePickerElementType,
+    UserMenuType,
 )
-from slacktools.block_kit.base import (
-    BaseBlock,
-    BaseElementType,
-    PlainTextObjectType
-)
-
-
-class ButtonElementType(BaseElementType, total=False):
-    text: PlainTextObjectType
-    value: str
-    action_id: str
-    style: str
-    confirm: ConfirmationDialogType
-    url: str
-
-
-class CheckboxElementType(BaseElementType, total=False):
-    action_id: str
-    options: List[OptionType]
-    initial_options: List[OptionType]
-    confirm: ConfirmationDialogType
-
-
-class DatePickerElementType(BaseElementType, total=False):
-    action_id: str
-    placeholder: PlainTextObjectType
-    initial_date: str
-    confirm: ConfirmationDialogType
-
-
-class TimePickerElementType(BaseElementType, total=False):
-    action_id: str
-    placeholder: PlainTextObjectType
-    initial_time: str
-    confirm: ConfirmationDialogType
-
-
-class ImageElementType(BaseElementType, total=False):
-    image_url: str
-    alt_text: str
-
-
-class SelectBaseMenuType(BaseElementType, total=False):
-    placeholder: PlainTextObjectType
-    action_id: str
-    confirm: ConfirmationDialogType
-
-
-class StaticMenuType(SelectBaseMenuType, total=False):
-    options: List[OptionType]
-    option_groups: List[OptionGroupType]
-    initial_option: Union[OptionType, OptionGroupType]
-
-
-class UserMenuType(SelectBaseMenuType, total=False):
-    initial_user: str
-
-
-class MultiSelectBaseMenuType(SelectBaseMenuType, total=False):
-    max_selected_items: int
-
-
-class MultiSelectStaticMenuType(MultiSelectBaseMenuType, total=False):
-    options: List[OptionType]
-    option_groups: List[OptionGroupType]
-    initial_options: List[Union[OptionType, OptionGroupType]]
-
-
-class MultiSelectUsersMenuType(MultiSelectBaseMenuType, total=False):
-    initial_users: List[str]
-
-
-class OverflowMenuType(BaseElementType):
-    action_id: str
-    options: List[OptionType]
-    confirm: ConfirmationDialogType
-
-
-class PlainTextInputType(BaseElementType):
-    action_id: str
-    placeholder: PlainTextObjectType
-    initial_value: str
-    multiline: bool
-    min_length: int
-    max_length: int
-
-
-class RadioButtonGroupType(BaseElementType):
-    action_id: str
-    options: List[OptionType]
-    initial_option: OptionType
-    confirm: ConfirmationDialogType
 
 
 class SelectMenuElementType(enum.Enum):
@@ -234,7 +156,7 @@ class BlockElement(BaseBlock):
     @classmethod
     def _make_select_menu(cls, menu_type: SelectMenuElementType, placeholder: str, action_id: str,
                           confirm: ConfirmationDialogType = None,
-                          max_selected_items: int = 1) -> \
+                          max_selected_items: int = None) -> \
             Union[MultiSelectStaticMenuType, MultiSelectUsersMenuType, StaticMenuType, UserMenuType]:
         """Handles building the structure of the multiselect menu that other methods depend on"""
         cls.perform_assertions({
@@ -246,7 +168,8 @@ class BlockElement(BaseBlock):
             'placeholder': cls.plaintext_section(text=placeholder),
             'action_id': action_id,
         }
-        if menu_type in [SelectMenuElementType.MULTI_STATIC, SelectMenuElementType.MULTI_USER]:
+        if menu_type in [SelectMenuElementType.MULTI_STATIC, SelectMenuElementType.MULTI_USER] and \
+                max_selected_items is not None:
             ms_menu['max_selected_items'] = max_selected_items
         if confirm is not None:
             ms_menu['confirm'] = confirm
@@ -255,7 +178,7 @@ class BlockElement(BaseBlock):
     @classmethod
     def make_static_menu(cls, placeholder: str, action_id: str, options: List[OptionType] = None,
                          option_groups: List[OptionGroupType] = None,
-                         initial_option: List[Union[OptionType, OptionGroupType]] = None,
+                         initial_option: Union[OptionType, OptionGroupType] = None,
                          confirm: ConfirmationDialogType = None) -> \
             StaticMenuType:
         cls.perform_assertions({
@@ -268,6 +191,7 @@ class BlockElement(BaseBlock):
                              'Please set either the options or option_groups argument to None.')
         ms_menu = cls._make_select_menu(menu_type=SelectMenuElementType.SINGLE_STATIC, placeholder=placeholder,
                                         action_id=action_id, confirm=confirm)
+        ms_menu: StaticMenuType
         if options is not None:
             ms_menu['options'] = options
         elif option_groups is not None:
@@ -318,7 +242,7 @@ class BlockElement(BaseBlock):
 
     @classmethod
     def make_multiselect_user_menu(cls, placeholder: str, action_id: str,  initial_users: List[str] = None,
-                                   confirm: ConfirmationDialogType = None, max_selected_items: int = 1) -> \
+                                   confirm: ConfirmationDialogType = None, max_selected_items: int = None) -> \
             MultiSelectUsersMenuType:
 
         ms_menu = cls._make_select_menu(menu_type=SelectMenuElementType.MULTI_USER, placeholder=placeholder,
@@ -348,7 +272,8 @@ class BlockElement(BaseBlock):
 
     @classmethod
     def make_plaintext_input(cls, action_id: str, placeholder: str = None, initial_value: str = None,
-                             multiline: bool = False, min_length: int = 0, max_length: int = 3000) -> \
+                             multiline: bool = False, min_length: int = 0, max_length: int = 3000,
+                             dispatch_actions: DispatchActionType = None) -> \
             PlainTextInputType:
         cls.perform_assertions({
             'action_id': (action_id, 255),
@@ -365,6 +290,8 @@ class BlockElement(BaseBlock):
             input_obj['placeholder'] = cls.plaintext_section(text=placeholder)
         if initial_value is not None:
             input_obj['initial_value'] = initial_value
+        if dispatch_actions is not None:
+            input_obj['dispatch_action_config'] = dispatch_actions
 
         return input_obj
 
