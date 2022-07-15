@@ -15,6 +15,14 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.7.0] - 2022-06-10
+#### Added
+ - Events API types
+#### Changed
+ - [GH-3](../../issues/3) - Block Kit refactored and expanded to include all elements used in sections / messages, with type hinting
+#### Fixed
+ - [GH-2](../../issues/2) - Exceptions still posting in Slack
+ 
 ### [1.6.2] - 2022-05-18
 #### Fixed
  - Events structure in Slack changes because it's sneaky. This change makes events parsing a tad more flexible.
