@@ -1,18 +1,19 @@
 from datetime import (
     date,
     datetime,
-    time
+    time,
 )
+import enum
 from typing import (
     Dict,
     List,
     Tuple,
-    Union
+    Union,
 )
-import enum
+
 from slacktools.block_kit.types import (
     MarkdownTextObjectType,
-    PlainTextObjectType
+    PlainTextObjectType,
 )
 
 

@@ -1,8 +1,10 @@
 from typing import (
     List,
-    Union
+    Union,
 )
+
 from slacktools.block_kit.base import BaseBlock
+from slacktools.block_kit.elements import BlockElement
 from slacktools.block_kit.types import (
     AccessoryBlockElements,
     ActionsBlockType,
@@ -16,12 +18,11 @@ from slacktools.block_kit.types import (
     ImageElementType,
     InputBlockElements,
     InputBlockType,
-    OptionType,
     OptionGroupType,
+    OptionType,
     SectionBlockType,
-    TextObjects
+    TextObjects,
 )
-from slacktools.block_kit.elements import BlockElement
 
 
 class LayoutBlock(BaseBlock):

@@ -2,12 +2,13 @@
 Docs: https://api.slack.com/events/emoji_changed
 """
 from typing import Dict
+
+from slacktools.events.base import BaseEvent
 from slacktools.events.types import (
     UserChangeType,
     UserInfoType,
     UserProfileType,
 )
-from slacktools.events.base import BaseEvent
 
 
 class UserProfile(BaseEvent):

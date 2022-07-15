@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from pathlib import Path
+from random import randint
 import re
 import string
-from pathlib import Path
-import yaml
-import pandas as pd
 from types import SimpleNamespace
 from typing import (
     Callable,
     Dict,
     List,
-    Union
+    Union,
 )
-from random import randint
-from tabulate import tabulate
+
 from loguru import logger
-from slacktools.slack_methods import SlackMethods
+import pandas as pd
+from tabulate import tabulate
+import yaml
+
 from slacktools.slack_input_parser import SlackInputParser
+from slacktools.slack_methods import SlackMethods
 
 
 def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, Union[str, List[str], Callable]]]:

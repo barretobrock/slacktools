@@ -1,14 +1,15 @@
 import enum
 from typing import (
     List,
-    Tuple
+    Tuple,
 )
+
 from slacktools.block_kit.base import BaseBlock
 from slacktools.block_kit.types import (
     ConfirmationDialogType,
     DispatchActionType,
+    OptionGroupType,
     OptionType,
-    OptionGroupType
 )
 
 

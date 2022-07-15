@@ -1,9 +1,11 @@
-import unittest
 from typing import Dict
+import unittest
+
 from slacktools.block_kit import BlockKitBuilder as BKitB
+
 from .common import (
     get_test_logger,
-    random_string
+    random_string,
 )
 
 

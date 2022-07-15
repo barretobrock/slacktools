@@ -4,8 +4,9 @@
 import os
 import tempfile
 from urllib.parse import urlparse
-import requests
+
 from loguru import logger
+import requests
 
 
 class SlackSessionNotInitException(Exception):

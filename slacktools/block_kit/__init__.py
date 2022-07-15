@@ -1,5 +1,5 @@
-from .layout import LayoutBlock
 from .elements import BlockElement
+from .layout import LayoutBlock
 
 
 class BlockKitBuilder(LayoutBlock, BlockElement):

@@ -1,7 +1,8 @@
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict
-from pathlib import Path
+
 from pykeepass import PyKeePass
 from pykeepass.entry import Entry
 

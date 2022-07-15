@@ -1,11 +1,12 @@
 from unittest import (
     TestCase,
-    main
+    main,
 )
+
 from slacktools.db_engine import PSQLClient
 from tests.common import (
     get_test_logger,
-    make_patcher
+    make_patcher,
 )
 
 
@@ -35,14 +36,14 @@ class TestPSQLClient(TestCase):
 
     def test_session_mgr(self):
         # Normal ops
-        with self.eng.session_mgr() as session:
+        with self.eng.session_mgr():
             self.mock_sessionmacher().assert_called()
         self.mock_sessionmacher()().commit.assert_called()
         self.mock_sessionmacher()().close.assert_called()
         self.mock_sessionmacher()().rollback.assert_not_called()
         # Exception
-        with self.assertRaises(Exception) as err:
-            with self.eng.session_mgr() as session:
+        with self.assertRaises(Exception):
+            with self.eng.session_mgr():
                 raise Exception('rollback')
         self.mock_sessionmacher()().rollback.assert_called()
 

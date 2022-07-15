@@ -3,13 +3,14 @@ Docs: https://api.slack.com/events/emoji_changed
 """
 import enum
 from typing import List
+
+from slacktools.events.base import BaseEvent
 from slacktools.events.types import (
     EmojiAddedEventType,
-    EmojiRenamedEventType,
+    EmojiChangedEvents,
     EmojiRemovedEventType,
-    EmojiChangedEvents
+    EmojiRenamedEventType,
 )
-from slacktools.events.base import BaseEvent
 
 
 class EmojiChangeSubType(enum.Enum):

@@ -1,7 +1,8 @@
-import sys
-import string
 import random
+import string
+import sys
 from unittest.mock import patch
+
 from loguru import logger
 
 

@@ -2,13 +2,12 @@
 Docs: https://api.slack.com/events/emoji_changed
 """
 import enum
-from slacktools.events.types import (
-    PinEventType
-)
+
 from slacktools.events.base import (
     BaseEvent,
-    EventItem
+    EventItem,
 )
+from slacktools.events.types import PinEventType
 
 
 class PinType(enum.Enum):

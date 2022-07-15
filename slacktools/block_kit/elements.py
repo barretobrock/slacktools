@@ -5,13 +5,14 @@ References: https://api.slack.com/reference/block-kit/block-elements
 from datetime import (
     date,
     datetime,
-    time
-)
-from typing import (
-    List,
-    Union
+    time,
 )
 import enum
+from typing import (
+    List,
+    Union,
+)
+
 from slacktools.block_kit.base import BaseBlock
 from slacktools.block_kit.types import (
     ButtonElementType,
@@ -22,8 +23,8 @@ from slacktools.block_kit.types import (
     ImageElementType,
     MultiSelectStaticMenuType,
     MultiSelectUsersMenuType,
-    OptionType,
     OptionGroupType,
+    OptionType,
     OverflowMenuType,
     PlainTextInputType,
     RadioButtonGroupType,

@@ -7,8 +7,8 @@ from .block_kit import BlockKitBuilder
 from .db_engine import PSQLClient
 from .gsheet import GSheetAgent
 from .secretstore import SecretStore
-from .slackbot import SlackBotBase
 from .slack_methods import SlackMethods
+from .slackbot import SlackBotBase
 from .tools import SlackTools
 
 __version__ = '1.7.0'

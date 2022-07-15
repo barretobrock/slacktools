@@ -1,7 +1,7 @@
 from typing import (
     List,
     TypedDict,
-    Union
+    Union,
 )
 
 

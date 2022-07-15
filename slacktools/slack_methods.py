@@ -1,23 +1,30 @@
-import time
+from asyncio import Future
 from datetime import (
     datetime,
-    timedelta
+    timedelta,
 )
-import requests
 from io import BytesIO
-from asyncio import Future
+import time
 from types import SimpleNamespace
 from typing import (
-    Union,
+    Dict,
     List,
     Optional,
     Tuple,
-    Dict
+    Union,
 )
+
 from loguru import logger
+import requests
 from slack import WebClient
-from slack.web.slack_response import SlackResponse
 from slack.errors import SlackApiError
+from slack.web.slack_response import SlackResponse
+
+from slacktools.events.user_change import (
+    UserChangeType,
+    UserInfo,
+    UserInfoType,
+)
 from slacktools.slack_session import SlackSession
 
 
@@ -67,24 +74,12 @@ class SlackMethods:
                 raise Exception(err_msg)
 
     @staticmethod
-    def clean_user_info(user_dict: dict) -> dict:
+    def clean_user_info(user_dict: UserInfoType) -> UserInfo:
         """Takes in a user dict of the user's info and flattens it,
         returning a flat dictionary of only the useful data"""
-        return {
-            'id': user_dict['id'],
-            'name': user_dict['name'],
-            'real_name': user_dict['real_name'],
-            'is_bot': user_dict['is_bot'],
-            'title': user_dict['profile']['title'],
-            'display_name': user_dict['profile']['display_name'],
-            'status_emoji': user_dict['profile']['status_emoji'],
-            'status_text': user_dict['profile']['status_text'],
-            'avi_hash': user_dict['profile']['avatar_hash'],
-            'avi': user_dict['profile']['image_512'],
-            'avi32': user_dict['profile']['image_32'],
-        }
+        return UserInfo(user_dict)
 
-    def get_channel_members(self, channel: str, humans_only: bool = False) -> List[dict]:
+    def get_channel_members(self, channel: str, humans_only: bool = False) -> List[UserInfo]:
         """Collect members of a particular channel
         Args:
             channel: str, the channel to examine
@@ -100,7 +95,7 @@ class SlackMethods:
         for user in self.get_users_info(user_ids):
             users.append(self.clean_user_info(user))
 
-        return [user for user in users if not user['is_bot']] if humans_only else users
+        return [user for user in users if not user.is_bot] if humans_only else users
 
     def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
         """Collects info from a list of user ids"""
@@ -112,7 +107,7 @@ class SlackMethods:
                 user_info.append(respdata['user'])
         return user_info
 
-    def get_user_info(self, user_id: str, throw_exception: bool = False) -> Dict:
+    def get_user_info(self, user_id: str, throw_exception: bool = False) -> UserChangeType:
         """Gets individual user info"""
         resp = None
         respdata = None

@@ -1,18 +1,19 @@
+from contextlib import contextmanager
 import traceback
 from typing import (
     Any,
-    Dict
+    Dict,
 )
-from contextlib import contextmanager
+
+from loguru import logger
 from sqlalchemy.engine import (
+    URL,
     create_engine,
-    URL
 )
 from sqlalchemy.orm import (
+    Session,
     sessionmaker,
-    Session
 )
-from loguru import logger
 
 
 class PSQLClient:

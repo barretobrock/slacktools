@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from datetime import datetime
 import re
 import traceback
-from datetime import datetime
-from dateutil import relativedelta
 from types import SimpleNamespace
 from typing import (
+    Callable,
     Dict,
     List,
-    Union,
-    Tuple,
     Optional,
-    Callable
+    Tuple,
+    Union,
 )
+
+from dateutil import relativedelta
 from loguru import logger
-from slacktools.tools import SlackTools
-from slacktools.slack_input_parser import SlackInputParser
+
 from slacktools.block_kit import BlockKitBuilder as BKitB
-from slacktools.slack_input_parser import block_text_converter
+from slacktools.slack_input_parser import (
+    SlackInputParser,
+    block_text_converter,
+)
+from slacktools.tools import SlackTools
 
 
 class SlackBotBase(SlackTools):

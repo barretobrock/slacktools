@@ -1,4 +1,5 @@
 from typing import Dict
+
 from slacktools.events.types import EventItemType
 
 

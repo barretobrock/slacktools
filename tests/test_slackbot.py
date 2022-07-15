@@ -1,8 +1,6 @@
 import unittest
-from .common import (
-    get_test_logger,
-    random_string
-)
+
+from .common import get_test_logger
 
 
 class TestSlackBotBase(unittest.TestCase):
