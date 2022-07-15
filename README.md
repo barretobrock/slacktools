@@ -35,5 +35,3 @@ cd slacktools && sh ppmgr.sh pull
 ```bash
 poetry update -v
 ```
-
-
