@@ -18,6 +18,7 @@ __BEGIN-CHANGELOG__
 ### [1.7.0] - 2022-06-10
 #### Added
  - Events API types
+ - add `pre-commit`
 #### Changed
  - [GH-3](../../issues/3) - Block Kit refactored and expanded to include all elements used in sections / messages, with type hinting
 #### Fixed

@@ -14,7 +14,8 @@ class PlainTextObjectType(BaseElementType):
     emoji: bool
 
 
-class MarkdownTextObjectType(PlainTextObjectType):
+class MarkdownTextObjectType(BaseElementType):
+    text: str
     verbatim: bool
 
 

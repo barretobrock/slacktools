@@ -106,6 +106,5 @@ class BaseBlock:
         return {
             'type': 'mrkdwn',
             'text': cls._text(text=text),
-            'emoji': False,
             'verbatim': verbatim
         }

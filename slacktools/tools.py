@@ -9,6 +9,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    TypedDict,
     Union,
 )
 
@@ -21,24 +22,52 @@ from slacktools.slack_input_parser import SlackInputParser
 from slacktools.slack_methods import SlackMethods
 
 
-def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, Union[str, List[str], Callable]]]:
+class ProcessedCommandItemType(TypedDict, total=False):
+    pattern: str
+    tags: List[str]
+    group: str
+    desc: str
+    flags: List[str]
+    examples: List[str]
+    response: Union[str, List[Union[Callable, str]], List[str]]
+
+
+class ResponseItemType(TypedDict, total=False):
+    callable: str
+    args: List[str]
+
+
+class CommandItemDict(TypedDict, total=False):
+    tags: List[str]
+    desc: str
+    response_cmd: ResponseItemType
+    response_txt: str
+    flags: List[str]
+    examples: List[str]
+
+
+class CommandDict(TypedDict):
+    commands: List[Dict[str, CommandItemDict]]
+
+
+def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedCommandItemType]:
     """Reads in commands from a YAML file and builds out their structure, searching for named attributes
     as callables along the way"""
-    def parse_command(grp: str, regex: str, details: Dict, log: logger) -> Dict[str, Union[str, List[str], Callable]]:
-        item = {
-            'pattern': regex,
-            'tags': details.get('tags', []),
-            'group': grp,
-            'desc': details.get('desc')
-        }
+    def parse_command(grp: str, regex: str, details: CommandItemDict) -> ProcessedCommandItemType:
+        item = ProcessedCommandItemType(
+            pattern=regex,
+            tags=details.get('tags', []),
+            group=grp,
+            desc=details.get('desc')
+        )
         # Determine response
         if 'response-cmd' in details.keys():
-            callable_dict = details.get('response-cmd')  # type: Dict[str, Union[str, List[str]]]
+            callable_dict = details.get('response_cmd')  # type: ResponseItemType
             callable_name = callable_dict.get('callable')  # type: str
             callable_args = callable_dict.get('args', [])  # type: List[str]
 
-            opt_flags = details.get('flags')  # type: List[str]
-            opt_examples = details.get('examples')  # type: List[str]
+            opt_flags = details.get('flags')
+            opt_examples = details.get('examples')
             if opt_flags is not None:
                 log.debug(f'Adding {len(opt_flags)} flag(s) to item')
                 item['flags'] = opt_flags
@@ -54,7 +83,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
                 item['response'] = [callable_obj] + callable_args
         elif 'response-txt' in details.keys():
             log.debug('Binding text to response')
-            item['response'] = details.get('response-txt')
+            item['response'] = details.get('response_txt')
         return item
 
     with cmd_yaml_path.open() as f:
@@ -66,7 +95,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[Dict[str, 
         log.debug(f'Working on group {group}...')
         for cmd_regex, cmd_details in group_dict.items():
             log.debug(f'Working on command: {cmd_regex}')
-            processed_cmds.append(parse_command(grp=group, regex=cmd_regex, details=cmd_details, log=log))
+            processed_cmds.append(parse_command(grp=group, regex=cmd_regex, details=cmd_details))
 
     return processed_cmds
 

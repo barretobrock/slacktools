@@ -2,8 +2,7 @@ from typing import Dict
 import unittest
 
 from slacktools.block_kit import BlockKitBuilder as BKitB
-
-from .common import (
+from tests.common import (
     get_test_logger,
     random_string,
 )
@@ -29,7 +28,6 @@ class TestBlockKit(unittest.TestCase):
         exp = {
             'type': 'mrkdwn',
             'text': txt,
-            'emoji': False,
             'verbatim': False
         }
         resp = BKitB.markdown_section(text=txt)  # type: Dict

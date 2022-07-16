@@ -10,6 +10,29 @@ class BaseEventType(TypedDict):
     type: str
 
 
+class StandardMessageEventType(BaseEventType):
+    channel: str
+    user: str
+    text: str
+    ts: str
+
+
+class ThreadedMessageEventType(StandardMessageEventType, total=False):
+    message: StandardMessageEventType
+    subtype: str    # message_replied
+    thread_ts: str
+
+
+class SlashCommandEventType(TypedDict):
+    command: str
+    text: str
+    response_url: str
+    trigger_id: str
+    user_id: str
+    user_name: str
+    channel_id: str
+
+
 class ChannelDataType(TypedDict):
     id: str
     name: str
@@ -118,3 +141,20 @@ class UserChangeType(BaseEventType):
     user: UserInfoType
     event_ts: str
     cache_ts: int
+
+
+ALL_EVENTS = Union[
+    ChannelCreatedEventType,
+    EmojiAddedEventType,
+    EmojiRemovedEventType,
+    EmojiRenamedEventType,
+    PinEventType,
+    ReactionEventType,
+    StandardMessageEventType,
+    UserChangeType
+]
+
+
+class EventWrapperType(TypedDict, total=False):
+    """This is the dict that includes the event"""
+    event: ALL_EVENTS

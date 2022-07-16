@@ -17,18 +17,28 @@ from dateutil import relativedelta
 from loguru import logger
 
 from slacktools.block_kit import BlockKitBuilder as BKitB
+from slacktools.events.message_event import (
+    MessageEvent,
+    SlashCommandEvent,
+)
+from slacktools.events.types import (
+    SlashCommandEventType,
+    StandardMessageEventType,
+)
 from slacktools.slack_input_parser import (
     SlackInputParser,
     block_text_converter,
 )
-from slacktools.tools import SlackTools
+from slacktools.tools import (
+    ProcessedCommandItemType,
+    SlackTools,
+)
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str,
-                 is_post_exceptions: bool = False, debug: bool = False, parent_log: logger = None,
-                 use_session: bool = False):
+    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str, parent_log: logger,
+                 is_post_exceptions: bool = False, debug: bool = False, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
@@ -59,7 +69,7 @@ class SlackBotBase(SlackTools):
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
         self.main_channel = main_channel
 
-        self.commands = []
+        self.commands = []  # type: List[ProcessedCommandItemType]
 
         self.triggers = [f'{self.user_id}']
         # User ids are formatted in a different way, so just
@@ -75,12 +85,12 @@ class SlackBotBase(SlackTools):
         #   due to delay in Slack receiving a response. I've yet to figure out how to improve response time
         self.message_events = []
 
-    def update_commands(self, commands: List[Dict[str, Union[str, List[str], Callable]]]):
+    def update_commands(self, commands: List[ProcessedCommandItemType]):
         """Updates the dictionary of commands"""
         self.commands = commands
 
     @staticmethod
-    def build_command_output(command_dict: Dict[str, Union[str, List[str]]]) -> str:
+    def build_command_output(command_dict: ProcessedCommandItemType) -> str:
         """Takes in a single command dictionary and formats it for output in a Slack message"""
         tab_char = ':blank:'  # this is wonky, but it works much better than \t in Slack!
         pattern = command_dict.get('pattern')
@@ -97,7 +107,7 @@ class SlackBotBase(SlackTools):
             desc += f'\n{tab_char * 1}Example Usage:\n{tab_char}{example_desc}\n'
         return f'*`{pattern}`*: {desc}\n'
 
-    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List[dict]:
+    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List[Dict]:
         """Builds bot's description of functions into a giant wall of help text
         Args:
             intro: str, The bot's introduction
@@ -144,8 +154,7 @@ class SlackBotBase(SlackTools):
         return blocks
 
     def search_help_block(self, message: str):
-        """Takes in a message and filters command descriptions for output
-        """
+        """Takes in a message and filters command descriptions for output"""
         self.log.debug(f'Got help search command: {message}')
         group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)
         tag = SlackInputParser.get_flag_from_command(message, flags=['t'], default=None)
@@ -194,39 +203,33 @@ class SlackBotBase(SlackTools):
             return trigger, message_txt, raw_message
         return None, None, None
 
-    def parse_event(self, event_data: dict):
+    def parse_message_event(self, resp_dict: Dict):
         """Takes in an Events API message-triggered event dict and determines
          if a command was issued to the bot"""
-        event = event_data['event']
-        event_type = event['type']
-        raw_text = event.get('text')
-        channel_id = event.get('channel')
-        event_ts = event.get('ts')
-        thread_ts = event.get('thread_ts')
-        msg_packet = None
-        if event_type == 'message' and "subtype" not in event.keys():
-            trigger, message, raw_message = self.parse_direct_mention(raw_text)
-            if trigger in self.triggers:
-                # Build a message hash
-                msg_hash = f'{channel_id}_{event_ts}'
-                if msg_hash not in self.message_events:
-                    self.message_events.append(msg_hash)
-                    msg_packet = {
-                        'message': message.strip(),
-                        'raw_message': raw_message.strip(),
-                        'thread_ts': thread_ts
-                    }
-                    # Add in all the other stuff
-                    msg_packet.update(event)
+        event_dict = resp_dict['event']  # type: StandardMessageEventType
+        event_type = event_dict['type']
+        if event_type != 'message':
+            return
+        event_data = MessageEvent(event_dict=event_dict)
 
-        if msg_packet is not None:
+        # Determine whether to process this message as a command
+        is_handle = False
+        if event_data.subtype is None or event_data.subtype == 'message_replied':
+            trigger, message, raw_message = self.parse_direct_mention(event_data.raw_message)
+            if trigger in self.triggers:
+                if event_data.message_hash not in self.message_events:
+                    is_handle = True
+                    self.message_events.append(event_data.message_hash)
+                    event_data.take_processed_message(clean_msg=message, raw_message=raw_message)
+
+        if is_handle:
             try:
-                self.handle_command(msg_packet)
+                self.handle_command(event_data)
             except Exception as e:
+                exception_msg = '{}: {}'.format(e.__class__.__name__, e)
+                self._log.error(f'Exception occurred: {exception_msg}', e)
                 if not isinstance(e, RuntimeError) and self.is_post_exceptions:
-                    exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                     if self.debug:
-                        self._log.error(f'Exception occurred: {exception_msg}', e)
                         blocks = [
                             BKitB.make_context_block(
                                 elements=[BKitB.markdown_section(
@@ -240,30 +243,27 @@ class SlackBotBase(SlackTools):
                                 )]
                             )
                         ]
-                        self.send_message(msg_packet['channel'], message='', blocks=blocks, thread_ts=thread_ts)
+                        self.send_message(event_data.channel_id, message='', blocks=blocks,
+                                          thread_ts=event_data.thread_ts)
                     else:
-                        self._log.error(f'Exception occurred: {exception_msg}', e)
-                        self.send_message(msg_packet['channel'], f"Exception occurred: \n```{exception_msg}```",
-                                          thread_ts=thread_ts)
+                        self.send_message(event_data.channel_id, f"Exception occurred: \n```{exception_msg}```",
+                                          thread_ts=event_data.thread_ts)
 
-    def handle_command(self, event_dict: dict):
+    def handle_command(self, event_data: MessageEvent):
         """Handles a bot command if it's known"""
         response = None
-        message = event_dict['message']
-        channel = event_dict['channel']
-        thread_ts = event_dict.get('thread_ts')
-        self._log.debug(f'Incoming message: {message}')
+        self._log.debug(f'Incoming message: {event_data.cleaned_message}')
 
         is_matched = False
         for resp_dict in self.commands:
             regex = resp_dict.get('pattern')
-            match = re.match(regex, message)
+            match = re.match(regex, event_data.cleaned_message)
             if match is not None:
                 self._log.debug(f'Matched on pattern: {regex}')
                 # We've matched on a command
                 resp = resp_dict['response']
                 # Add the regex pattern into the event dict
-                event_dict['match_pattern'] = regex
+                event_data.take_match_pattern(regex)
                 if isinstance(resp, list):
                     if len(resp) == 0:
                         # Empty response placeholder... Maybe we'll use this for certain commands.
@@ -280,7 +280,7 @@ class SlackBotBase(SlackTools):
                         resp_list = resp.copy()
                         # Examine list, replace any known strings ('message', 'channel', etc.)
                         #   with event context variables
-                        for k, v in event_dict.items():
+                        for k, v in event_data.__dict__.items():
                             if k in resp_list:
                                 resp_list[resp_list.index(k)] = v
                         # Function with args; sometimes response can be None
@@ -297,22 +297,22 @@ class SlackBotBase(SlackTools):
                 self._log.debug(f'Response is of type: {type(response)}')
                 break
 
-        if message != '' and not is_matched:
-            response = f"I didn\'t understand this: *`{message}`*\n" \
+        if event_data.cleaned_message != '' and not is_matched:
+            response = f"I didn\'t understand this: *`{event_data.cleaned_message}`*\n" \
                        f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
                        f"to get a list of my commands."
 
         if response is not None:
             if isinstance(response, str):
                 try:
-                    response = response.format(**event_dict)
+                    response = response.format(**event_data.__dict__)
                 except KeyError:
                     # Response likely has some curly braces in it that disrupt str.format().
                     # Pass string without formatting
                     pass
-                self.send_message(channel, response, thread_ts=thread_ts)
+                self.send_message(event_data.channel_id, response, thread_ts=event_data.thread_ts)
             elif isinstance(response, list):
-                self.send_message(channel, '', blocks=response, thread_ts=thread_ts)
+                self.send_message(event_data.channel_id, '', blocks=response, thread_ts=event_data.thread_ts)
 
     @staticmethod
     def call_command(cmd: Callable, *args, **kwargs):
@@ -322,24 +322,20 @@ class SlackBotBase(SlackTools):
         """
         return cmd(*args, **kwargs)
 
-    def parse_slash_command(self, event_data: dict):
+    def parse_slash_command(self, event_dict: SlashCommandEventType):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
         """
-        user = event_data['user_id']
-        channel = event_data['channel_id']
-        command = event_data['command']
-        text = event_data['text']
-        un = event_data['user_name']
+        event_data = SlashCommandEvent(event_dict=event_dict)
+        self._log.debug(f'Parsed slash command from {event_data.user_name}: {event_data.full_message}')
 
-        processed_cmd = command.replace('/', '').replace('-', ' ')
-
-        if text != '':
-            processed_cmd += f' {text}'
-        self._log.debug(f'Parsed slash command from {un}: {processed_cmd}')
-
-        self.handle_command({'message': processed_cmd, 'channel': channel, 'user': user,
-                             'raw_message': processed_cmd})
+        self.handle_command(MessageEvent(StandardMessageEventType(
+            type='message',
+            channel=event_data.channel_id,
+            user=event_data.user_id,
+            text=event_data.full_message,
+            ts=f'{datetime.now().timestamp()}'
+        )))
 
     @staticmethod
     def get_time_elapsed(st_dt: datetime) -> str:

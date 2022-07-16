@@ -2,8 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from slacktools.tools import SlackTools
-
-from .common import (
+from tests.common import (
     get_test_logger,
     make_patcher,
     random_string,
