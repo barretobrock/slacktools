@@ -2,7 +2,10 @@
 Docs: https://api.slack.com/events/emoji_changed
 """
 import enum
-from typing import List
+from typing import (
+    List,
+    Union
+)
 
 from slacktools.events.base import BaseEvent
 from slacktools.events.types import (
@@ -50,3 +53,17 @@ class EmojiRemoved(_EmojiChanged):
 
     def __init__(self, event_dict: EmojiRemovedEventType):
         super().__init__(event_dict=event_dict)
+
+
+def decide_emoji_event_class(event_dict: EmojiChangedEvents) -> Union[EmojiAdded, EmojiRenamed, EmojiRemoved]:
+    """Decides based on `subtype` key which emoji event class to return"""
+    subtype = event_dict['subtype']
+    match subtype:
+        case EmojiChangeSubType.add.name:
+            return EmojiAdded(event_dict=event_dict)
+        case EmojiChangeSubType.remove.name:
+            return EmojiRemoved(event_dict=event_dict)
+        case EmojiChangeSubType.rename.name:
+            return EmojiRenamed(event_dict=event_dict)
+        case _:
+            raise ValueError(f'Subtype not recognized: {subtype}')

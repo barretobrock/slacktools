@@ -23,6 +23,9 @@ class ThreadedMessageEventType(StandardMessageEventType, total=False):
     thread_ts: str
 
 
+AllMessageEventTypes = Union[StandardMessageEventType, ThreadedMessageEventType]
+
+
 class SlashCommandEventType(TypedDict):
     command: str
     text: str

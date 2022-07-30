@@ -15,6 +15,11 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.7.2] - 2022-07-30
+#### Added
+ - EmojiEvent Factory
+ - Bundled message event types
+ 
 ### [1.7.1] - 2022-07-29
 #### Added
  - `make_section_with_image` method
