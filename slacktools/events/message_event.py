@@ -1,12 +1,13 @@
 from typing import (
     Optional,
-    Union
+    Union,
 )
+
 from slacktools.events.base import BaseEvent
 from slacktools.events.types import (
     SlashCommandEventType,
     StandardMessageEventType,
-    ThreadedMessageEventType
+    ThreadedMessageEventType,
 )
 
 

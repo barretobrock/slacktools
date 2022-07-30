@@ -14,6 +14,10 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Fixed
 #### Security
 __BEGIN-CHANGELOG__
+ 
+### [1.7.1] - 2022-07-29
+#### Added
+ - `make_section_with_image` method
 
 ### [1.7.0] - 2022-06-10
 #### Added

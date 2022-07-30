@@ -149,6 +149,19 @@ class LayoutBlock(BaseBlock):
         return section
 
     @classmethod
+    def make_section_with_image(cls, label: str, url: str, alt_txt: str = 'image', block_id: str = None) -> \
+            SectionBlockType:
+
+        return cls.make_section_block(
+            text_obj=cls.plaintext_section(text=label),
+            block_id=block_id,
+            accessory=BlockElement.make_image_element(
+                url=url,
+                alt_txt=alt_txt
+            )
+        )
+
+    @classmethod
     def make_section_with_button(cls, label: str, block_id: str = None, btn_txt: str = 'Click Me',
                                  value: str = 'btn-value-0', action_id: str = 'button-action',
                                  danger_style: bool = None, confirm_obj: ConfirmationDialogType = None,
