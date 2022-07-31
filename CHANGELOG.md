@@ -15,11 +15,19 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [1.7.3] - 2022-07-31
+#### Added
+ - Documented example api responses to (later) better test class construction more thoroughly
+#### Changed
+ - Broke out api into web, events and slash - potentially more to come
+#### Fixed
+ - Classes now parse nested dictionary info in 1 pass instead of the more broken methodology of patching in nested items later
+
 ### [1.7.2] - 2022-07-30
 #### Added
  - EmojiEvent Factory
  - Bundled message event types
- 
+
 ### [1.7.1] - 2022-07-29
 #### Added
  - `make_section_with_image` method

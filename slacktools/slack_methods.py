@@ -20,11 +20,11 @@ from slack import WebClient
 from slack.errors import SlackApiError
 from slack.web.slack_response import SlackResponse
 
-from slacktools.events.user_change import (
+from slacktools.api.events.types import (
     UserChangeType,
-    UserInfo,
     UserInfoType,
 )
+from slacktools.api.events.user_change import UserInfo
 from slacktools.slack_session import SlackSession
 
 

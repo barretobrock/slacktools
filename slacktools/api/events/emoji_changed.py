@@ -4,11 +4,11 @@ Docs: https://api.slack.com/events/emoji_changed
 import enum
 from typing import (
     List,
-    Union
+    Union,
 )
 
-from slacktools.events.base import BaseEvent
-from slacktools.events.types import (
+from slacktools.api.events.base import BaseEvent
+from slacktools.api.events.types import (
     EmojiAddedEventType,
     EmojiChangedEvents,
     EmojiRemovedEventType,

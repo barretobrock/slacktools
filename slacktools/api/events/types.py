@@ -26,16 +26,6 @@ class ThreadedMessageEventType(StandardMessageEventType, total=False):
 AllMessageEventTypes = Union[StandardMessageEventType, ThreadedMessageEventType]
 
 
-class SlashCommandEventType(TypedDict):
-    command: str
-    text: str
-    response_url: str
-    trigger_id: str
-    user_id: str
-    user_name: str
-    channel_id: str
-
-
 class ChannelDataType(TypedDict):
     id: str
     name: str

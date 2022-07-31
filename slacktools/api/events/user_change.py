@@ -3,12 +3,8 @@ Docs: https://api.slack.com/events/emoji_changed
 """
 from typing import Dict
 
-from slacktools.events.base import BaseEvent
-from slacktools.events.types import (
-    UserChangeType,
-    UserInfoType,
-    UserProfileType,
-)
+from slacktools.api.events.base import BaseEvent
+from slacktools.api.events.types import UserChangeType
 
 
 class UserProfile(BaseEvent):
@@ -36,11 +32,8 @@ class UserProfile(BaseEvent):
     status_text_canonical: str
     team: str
 
-    def __init__(self, event_dict: UserProfileType):
-        super().__init__(event_dict=event_dict)
 
-
-class UserInfo(BaseEvent):
+class UserInfo:
     id: str
     team_id: str
     name: str
@@ -63,10 +56,6 @@ class UserInfo(BaseEvent):
     who_can_share_contact_card: str
     locale: str
 
-    def __init__(self, event_dict: UserInfoType):
-        super().__init__(event_dict=event_dict)
-        self.profile = UserProfile(event_dict=event_dict.get('profile'))
-
 
 class UserChange(BaseEvent):
     user: UserInfo
@@ -75,4 +64,3 @@ class UserChange(BaseEvent):
 
     def __init__(self, event_dict: UserChangeType):
         super().__init__(event_dict=event_dict)
-        self.user = UserInfo(event_dict=event_dict.get('user'))

@@ -3,11 +3,11 @@ Docs: https://api.slack.com/events/emoji_changed
 """
 import enum
 
-from slacktools.events.base import (
+from slacktools.api.events.base import (
     BaseEvent,
     EventItem,
 )
-from slacktools.events.types import ReactionEventType
+from slacktools.api.events.types import ReactionEventType
 
 
 class ReactionType(enum.Enum):
@@ -25,4 +25,3 @@ class ReactionEvent(BaseEvent):
 
     def __init__(self, event_dict: ReactionEventType):
         super().__init__(event_dict=event_dict)
-        self.item = EventItem(event_dict=event_dict.get('item'))

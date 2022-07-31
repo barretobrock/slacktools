@@ -1,0 +1,10 @@
+from datetime import datetime
+
+ts = datetime.now().timestamp()
+FAKEPINNER = 'UFAKEUID'
+FAKEAUTHORNAME = 'fake_user'
+FAKEAUTHORUSER = 'UFAKEAUTHOR'
+FAKEAUTHORBOT = 'BFAKEBOTAUTH'
+FAKECHANNEL = 'CFAKE32KD'
+FAKELINK = 'https://fakelink.slack.com/archives/CFAKE32KD/p23984712354598715'
+FAKETEAM = 'FAKETEAMID'
