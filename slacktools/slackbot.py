@@ -17,7 +17,7 @@ from dateutil import relativedelta
 from loguru import logger
 
 from slacktools.api.events.message_event import MessageEvent
-from slacktools.api.events.types import AllMessageEventTypes
+from slacktools.api.events.types import StandardMessageEventType
 from slacktools.api.slash.slash import (
     SlashCommandEvent,
     SlashCommandEventType,
@@ -327,7 +327,7 @@ class SlackBotBase(SlackTools):
         event_data = SlashCommandEvent(event_dict=event_dict)
         self._log.debug(f'Parsed slash command from {event_data.user_name}: {event_data.full_message}')
 
-        self.handle_command(MessageEvent(AllMessageEventTypes(
+        self.handle_command(MessageEvent(StandardMessageEventType(
             type='message',
             channel=event_data.channel_id,
             user=event_data.user_id,
