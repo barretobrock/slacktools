@@ -1,13 +1,7 @@
-from typing import (
-    Optional,
-    Union,
-)
+from typing import Optional
 
 from slacktools.api.events.base import BaseEvent
-from slacktools.api.events.types import (
-    StandardMessageEventType,
-    ThreadedMessageEventType,
-)
+from slacktools.api.events.types import AllMessageEventTypes
 
 
 class MessageEvent(BaseEvent):
@@ -22,7 +16,7 @@ class MessageEvent(BaseEvent):
     message_hash: str
     match_pattern: Optional[str]
 
-    def __init__(self, event_dict: Union[StandardMessageEventType, ThreadedMessageEventType]):
+    def __init__(self, event_dict: AllMessageEventTypes):
         # Keep 'ts' from becoming an attribute - it's confusingly named as to what timestamp it refers
         self.event_ts = event_dict.pop('ts')
         self.user_id = event_dict.pop('user')

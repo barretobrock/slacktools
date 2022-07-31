@@ -213,7 +213,7 @@ class SlackBotBase(SlackTools):
         # Determine whether to process this message as a command
         is_handle = False
         if event_data.subtype is None or event_data.subtype == 'message_replied':
-            trigger, message, raw_message = self.parse_direct_mention(event_data.raw_message)
+            trigger, message, raw_message = self.parse_direct_mention(event_data.raw_text)
             if trigger in self.triggers:
                 if event_data.message_hash not in self.message_events:
                     is_handle = True

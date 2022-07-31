@@ -61,7 +61,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedC
             desc=details.get('desc')
         )
         # Determine response
-        if 'response-cmd' in details.keys():
+        if 'response_cmd' in details.keys():
             callable_dict = details.get('response_cmd')  # type: ResponseItemType
             callable_name = callable_dict.get('callable')  # type: str
             callable_args = callable_dict.get('args', [])  # type: List[str]
@@ -77,11 +77,11 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedC
             if callable_args is None:
                 callable_args = []
             log.debug(f'Searching for callable "{callable_name}" in object...')
-            callable_obj = getattr(bot_obj, callable_name)  # type: callable
+            callable_obj = getattr(bot_obj, callable_name, None)  # type: callable
             if callable_obj is not None:
                 log.debug(f'Binding callable and {len(callable_args)} args to response')
                 item['response'] = [callable_obj] + callable_args
-        elif 'response-txt' in details.keys():
+        elif 'response_txt' in details.keys():
             log.debug('Binding text to response')
             item['response'] = details.get('response_txt')
         return item

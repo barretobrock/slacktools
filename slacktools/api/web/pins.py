@@ -1,6 +1,6 @@
 from typing import (
     Dict,
-    List
+    List,
 )
 
 from slacktools.api.base import BaseApiObject

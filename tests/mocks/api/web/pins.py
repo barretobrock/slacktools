@@ -1,13 +1,12 @@
 from tests.mocks.api import (
     FAKEAUTHORBOT,
     FAKEAUTHORUSER,
-    FAKEPINNER,
     FAKECHANNEL,
     FAKELINK,
+    FAKEPINNER,
     FAKETEAM,
-    ts
+    ts,
 )
-
 
 PIN_API_USR_MSG_RESP = {
     # Normal API response item from pin.list
@@ -21,7 +20,7 @@ PIN_API_USR_MSG_RESP = {
         'user': FAKEAUTHORUSER,
         'ts': f'{ts}',
         'team': FAKETEAM,
-        'blocks': [{'type': 'rich_text', 'block_id': 'Y9ogA', 'elements': [{'type': 'rich_text_section', 'elements': [{'type': 'text', 'text': "something"}, {'type': 'link', 'url': 'https://google.com'}]}]}],
+        'blocks': [],
         'pinned_to': [FAKECHANNEL],
         'permalink': FAKELINK
     }
@@ -39,7 +38,7 @@ PIN_API_BOT_MSG_RESP = {
         'bot_id': FAKEAUTHORBOT,
         'ts': f'{ts}',
         'team': FAKETEAM,
-        'blocks': [{'type': 'rich_text', 'block_id': 'Y9ogA', 'elements': [{'type': 'rich_text_section', 'elements': [{'type': 'text', 'text': "something"}, {'type': 'link', 'url': 'https://google.com'}]}]}],
+        'blocks': [],
         'pinned_to': [FAKECHANNEL],
         'permalink': FAKELINK
     }

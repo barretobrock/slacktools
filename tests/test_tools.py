@@ -1,12 +1,38 @@
+from pathlib import Path
 import unittest
 from unittest.mock import MagicMock
 
-from slacktools.tools import SlackTools
+from slacktools.tools import (
+    SlackTools,
+    build_commands,
+)
 from tests.common import (
     get_test_logger,
     make_patcher,
     random_string,
 )
+
+
+class TestBotObj:
+    def __getattr__(self, item):
+        return 'item'
+
+
+class TestBuildCommands(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._log = get_test_logger()
+
+    def setUp(self) -> None:
+        self.test_bot_obj = TestBotObj()
+        self.cmds = self.load_cmds()
+
+    def load_cmds(self):
+        return build_commands(self.test_bot_obj, Path(__file__).parent.joinpath('mocks/mock_commands.yaml'), log=self._log)
+
+    def test_build_command(self):
+        """Tests build_command_output"""
+        self.assertGreaterEqual(len(self.cmds), 1)
 
 
 class TestSlackTools(unittest.TestCase):

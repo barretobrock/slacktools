@@ -14,7 +14,15 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Fixed
 #### Security
 __BEGIN-CHANGELOG__
- 
+
+### [1.7.4] - 2022-07-31
+#### Added
+ - Test for command builder
+#### Fixed
+ - Improved mocking of pin/message event structure
+ - Command builder missing references to new naming patterns
+ - Bad attr call to message event data
+
 ### [1.7.3] - 2022-07-31
 #### Added
  - Documented example api responses to (later) better test class construction more thoroughly

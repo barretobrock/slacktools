@@ -1,4 +1,5 @@
 from typing import TypedDict
+
 from slacktools.api.events.base import BaseEvent
 
 
