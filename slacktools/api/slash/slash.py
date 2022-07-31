@@ -25,6 +25,7 @@ class SlashCommandEvent(BaseEvent):
     def __init__(self, event_dict: SlashCommandEventType):
         # Keep 'ts' from becoming an attribute - it's confusingly named as to what timestamp it refers
         super().__init__(event_dict=event_dict)
+        self.raw_command = event_dict['command']
         self.cleaned_command = self.raw_command.replace('/', '').replace('-', ' ')
         # Some commands can be without prompts / additional messages
         self.full_message = f'{self.cleaned_command} {self.text}' if self.text != '' else self.cleaned_command
