@@ -11,6 +11,8 @@ class SlashCommandEventType(TypedDict):
     user_id: str
     user_name: str
     channel_id: str
+    channel_name: str
+    team_id: str
 
 
 class SlashCommandEvent(BaseEvent):
@@ -21,6 +23,7 @@ class SlashCommandEvent(BaseEvent):
     user_id: str
     user_name: str
     channel_id: str
+    channel_name: str
 
     def __init__(self, event_dict: SlashCommandEventType):
         # Keep 'ts' from becoming an attribute - it's confusingly named as to what timestamp it refers

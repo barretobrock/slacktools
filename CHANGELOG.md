@@ -14,11 +14,14 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Fixed
 #### Security
 __BEGIN-CHANGELOG__
- 
+
 ### [1.7.6] - 2022-07-31
+#### Added
+ - Better mocking methods for slack responses
+ - More tests for events
 #### Fixed
  - Erroneous call to Union instantiation instead of typed dict
- 
+
 ### [1.7.5] - 2022-07-31
 #### Fixed
  - Slash commands were failing to parse the new command structure

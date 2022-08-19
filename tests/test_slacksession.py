@@ -1,6 +1,6 @@
 import unittest
 
-from .common import get_test_logger
+from tests.common import get_test_logger
 
 
 class TestSlackSession(unittest.TestCase):

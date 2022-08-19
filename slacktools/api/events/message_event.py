@@ -11,6 +11,7 @@ class MessageEvent(BaseEvent):
     raw_message: str
     cleaned_message: str
     channel_id: str
+    channel_type: str
     event_ts: str
     user_id: str
     message_hash: str
@@ -28,6 +29,9 @@ class MessageEvent(BaseEvent):
         self.channel_id = event_dict['channel']
         self.thread_ts = event_dict.get('thread_ts')
         self.message_hash = f'{self.channel_id}_{self.event_ts}'
+        self.cleaned_message = self.raw_message = self.raw_text
+        # 'channel' 'group' 'im'
+        self.channel_type = event_dict['channel_type']
 
     def take_processed_message(self, clean_msg: str, raw_message: str):
         """Takes in a processed message"""

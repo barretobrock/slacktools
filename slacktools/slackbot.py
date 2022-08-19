@@ -17,7 +17,10 @@ from dateutil import relativedelta
 from loguru import logger
 
 from slacktools.api.events.message_event import MessageEvent
-from slacktools.api.events.types import StandardMessageEventType
+from slacktools.api.events.types import (
+    AllMessageEventTypes,
+    StandardMessageEventType,
+)
 from slacktools.api.slash.slash import (
     SlashCommandEvent,
     SlashCommandEventType,
@@ -332,7 +335,7 @@ class SlackBotBase(SlackTools):
             channel=event_data.channel_id,
             user=event_data.user_id,
             text=event_data.full_message,
-            ts=f'{datetime.now().timestamp()}'
+            ts=f'{datetime.now().timestamp()}',
         )))
 
     @staticmethod

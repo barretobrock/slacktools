@@ -22,7 +22,7 @@ pandas = "^1.4.2"
 loguru = "0.6.0"
 pygsheets = "^2.0.5"
 pykeepass = "^4.0.1"
-psycopg2 = "2.9.3"
+psycopg2 = { version = "^2.9.3", optional = true }
 pyyaml = "^6.0"
 requests = "^2.27.1"
 slackclient = "^2.9.3"
@@ -45,3 +45,4 @@ skip_glob = ['*_pb2.py', '*_pb2_grpc.py']
 
 [tool.poetry.extras]
 test = ["pytest"]
+pgsql = ["psycopg2"]

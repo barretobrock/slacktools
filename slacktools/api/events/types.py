@@ -1,6 +1,7 @@
 from typing import (
     Dict,
     List,
+    Optional,
     TypedDict,
     Union,
 )
@@ -10,17 +11,19 @@ class BaseEventType(TypedDict):
     type: str
 
 
-class StandardMessageEventType(BaseEventType):
+class StandardMessageEventType(BaseEventType, total=False):
     channel: str
     user: str
     text: str
     ts: str
+    channel_type: str
+    event_ts: str
 
 
 class ThreadedMessageEventType(StandardMessageEventType, total=False):
-    message: StandardMessageEventType
-    subtype: str    # message_replied
+    subtype: Optional[str]    # message_replied
     thread_ts: str
+    parent_user_id: str
 
 
 AllMessageEventTypes = Union[StandardMessageEventType, ThreadedMessageEventType]
@@ -72,6 +75,25 @@ class ReactionEventType(BaseEventType):
     event_ts: str
 
 
+class PinEventMessageItemType(BaseEventType, total=False):
+    bot_id: Optional[str]
+    bot_profile: Optional[Dict]
+    user: str
+    username: Optional[str]
+    text: str
+    ts: str
+    team: str
+    blocks: List[Dict]
+    pinned_to: List[str]
+    permalink: str
+
+
+class PinEventItemType(EventItemType, total=False):
+    created: int
+    created_by: str
+    message: PinEventMessageItemType
+
+
 class PinEventType(BaseEventType):
     user: str
     channel_id: str
@@ -91,9 +113,10 @@ class UserProfileType(TypedDict):
     fields: Dict
     status_text: str
     status_emoji: str
-    status_emoji_display_info: str
-    status_expiration: str
+    status_emoji_display_info: List[str]
+    status_expiration: int
     avatar_hash: str
+    pronouns: str
     first_name: str
     last_name: str
     image_24: str
