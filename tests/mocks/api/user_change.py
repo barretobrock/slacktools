@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Dict
 
-from slacktools.api.events.types import UserInfoType, UserProfileType
-
+from slacktools.api.events.types import (
+    UserInfoType,
+    UserProfileType,
+)
 from tests.common import random_string
 
 
