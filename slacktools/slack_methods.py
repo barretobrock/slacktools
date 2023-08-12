@@ -30,33 +30,30 @@ from slacktools.slack_session import SlackSession
 
 class SlackMethods:
 
-    def __init__(self, bot_cred_entry: SimpleNamespace, parent_log: logger, use_session: bool = False):
-
-        self.log = parent_log
+    def __init__(self, bot_cred_entry: SimpleNamespace, use_session: bool = False):
         # Get team name
         self.team = bot_cred_entry.team
         # Grab tokens
         self.xoxp_token = bot_cred_entry.xoxp_token
         self.xoxb_token = bot_cred_entry.xoxb_token
-        self.log.debug('Spinning up user and bot methods...')
+        logger.debug('Spinning up user and bot methods...')
         self.user = WebClient(self.xoxp_token)
         self.bot = WebClient(self.xoxb_token)
-        self.log.debug('Retrieving bot id with an authentication test...')
+        logger.debug('Retrieving bot id with an authentication test...')
         auth_test = self.bot.auth_test()
         self.bot_id = auth_test['bot_id']
         self.user_id = auth_test['user_id']
 
         self.session = self.d_cookie = self.xoxc_token = None
         if use_session:
-            self.log.debug('Param `use_session` set to True - establishing session object.')
+            logger.debug('Param `use_session` set to True - establishing session object.')
             if all([x in bot_cred_entry.__dict__.keys() for x in ['d_cookie', 'xoxc_token']]):
                 self.d_cookie = bot_cred_entry.d_cookie
                 self.xoxc_token = bot_cred_entry.xoxc_token
-                self.session = SlackSession(self.team, d_cookie=self.d_cookie, xoxc_token=self.xoxc_token,
-                                            parent_log=self.log)
+                self.session = SlackSession(self.team, d_cookie=self.d_cookie, xoxc_token=self.xoxc_token)
             else:
-                self.log.warning('Session was prevented from instantiating - either d_cookie or xoxc_token '
-                                 'attributes weren\'t found in the cred entry.')
+                logger.warning('Session was prevented from instantiating - either d_cookie or xoxc_token '
+                               'attributes weren\'t found in the cred entry.')
 
     @staticmethod
     def _check_for_exception(response: Union[Future, SlackResponse]):
@@ -85,7 +82,7 @@ class SlackMethods:
             channel: str, the channel to examine
             humans_only: bool, if True, will only return non-bots in the channel
         """
-        self.log.debug(f'Getting channel members for channel {channel}.')
+        logger.debug(f'Getting channel members for channel {channel}.')
         resp = self.bot.conversations_members(channel=channel)
 
         # Check response for exception
@@ -99,7 +96,7 @@ class SlackMethods:
 
     def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
         """Collects info from a list of user ids"""
-        self.log.debug('Collecting users\' info.')
+        logger.debug('Collecting users\' info.')
         user_info = []
         for user in user_list:
             respdata = self.get_user_info(user_id=user, throw_exception=throw_exception)
@@ -119,7 +116,7 @@ class SlackMethods:
                 self._check_for_exception(resp)
             if resp['error'] == 'user_not_found':
                 # Unsuccessful at finding user. Add in a placeholder.
-                self.log.debug(f'User not found: {user_id}.')
+                logger.debug(f'User not found: {user_id}.')
                 respdata = {
                     'user': {
                         'id': user_id,
@@ -146,7 +143,7 @@ class SlackMethods:
     def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
                                 **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
-        self.log.debug(f'Sending private channel message: {channel} to {user_id}.')
+        logger.debug(f'Sending private channel message: {channel} to {user_id}.')
         resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
         self._check_for_exception(resp)
@@ -157,7 +154,7 @@ class SlackMethods:
     def private_message(self, user_id: str, message: str, ret_ts: bool = False,
                         **kwargs) -> Optional[Tuple[str, str]]:
         """Send private message to user"""
-        self.log.debug(f'Sending private message to {user_id}.')
+        logger.debug(f'Sending private message to {user_id}.')
         # Grab the DM "channel" associated with the user
         resp = self.bot.conversations_open(users=user_id)
         dm_chan = resp['channel']['id']
@@ -172,7 +169,7 @@ class SlackMethods:
     def send_message(self, channel: str, message: str, ret_ts: bool = False, ret_all: bool = False,
                      **kwargs) -> Optional[Union[str, SlackResponse]]:
         """Sends a message to the specific channel"""
-        self.log.debug(f'Sending channel message in {channel}.')
+        logger.debug(f'Sending channel message in {channel}.')
         resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
         self._check_for_exception(resp)
         if ret_ts:
@@ -183,7 +180,7 @@ class SlackMethods:
 
     def update_message(self, channel: str, ts: str, message: str = None, blocks: List[dict] = None):
         """Updates a message"""
-        self.log.debug(f'Updating message in {channel}.')
+        logger.debug(f'Updating message in {channel}.')
         resp = self.bot.chat_update(channel=channel, ts=ts, text=message, blocks=blocks)
         self._check_for_exception(resp)
 
@@ -192,7 +189,7 @@ class SlackMethods:
         NOTE: Since messages are deleted by channel id and timestamp, it's recommended to
             use search_messages_by_date() to determine the messages to delete
         """
-        self.log.debug(f'Attempting to delete message in {channel}.')
+        logger.debug(f'Attempting to delete message in {channel}.')
         if message_dict is None and any([x is None for x in [channel, ts]]):
             raise ValueError('Either message_dict should have a value or provide a channel id and timestamp.')
         if message_dict is not None:
@@ -203,18 +200,19 @@ class SlackMethods:
 
     def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
         """Collect channel history"""
-        self.log.debug(f'Getting channel history for channel {channel}.')
+        logger.debug(f'Getting channel history for channel {channel}.')
         resp = self.bot.conversations_history(channel=channel, limit=limit)
         self._check_for_exception(resp)
         return resp['messages']
 
-    def create_channel(self, channel_name: str, is_private: bool = False):
+    @staticmethod
+    def create_channel(channel_name: str, is_private: bool = False):
         """Creates a public/private channel"""
-        self.log.debug(f'Creating channel {channel_name} as a {"private" if is_private else "public"} channel')
+        logger.debug(f'Creating channel {channel_name} as a {"private" if is_private else "public"} channel')
 
     def invite_to_channel(self, channel: str, user_list: List[str]):
         """Invites a list of users to a given channel"""
-        self.log.debug(f'Inviting users: {user_list} to channel {channel}')
+        logger.debug(f'Inviting users: {user_list} to channel {channel}')
         resp = self.bot.channels_invite(channel=channel, user=','.join(user_list))
         self._check_for_exception(resp)
 
@@ -240,7 +238,7 @@ class SlackMethods:
 
         Notes: more on search modifiers here: https://slack.com/help/articles/202528808-Search-in-Slack
         """
-        self.log.debug('Beginning query build for message search.')
+        logger.debug('Beginning query build for message search.')
         slack_date_fmt = '%m-%d-%Y'  # Slack has a specific format to adhere to when in the US lol
         # Begin building queries
         query = ''
@@ -262,7 +260,7 @@ class SlackMethods:
             if has_pin:
                 query += ' has:pin'
 
-        self.log.debug(f'Sending query: {query}.')
+        logger.debug(f'Sending query: {query}.')
         resp = None
         for attempt in range(3):
             resp = self.user.search_messages(
@@ -290,7 +288,7 @@ class SlackMethods:
 
     def upload_file(self, channel: str, filepath: str, filename: str, is_url: bool = False, txt: str = ''):
         """Uploads the selected file to the given channel"""
-        self.log.debug(f'Attempting to upload file to {channel}.')
+        logger.debug(f'Attempting to upload file to {channel}.')
         if is_url:
             file = requests.get(filepath)
             fbytes = BytesIO(file.content)
@@ -313,7 +311,7 @@ class SlackMethods:
 
     def get_previous_msg_in_channel(self, channel: str, timestamp: str) -> Optional[Dict]:
         """Gets the previous message from the channel"""
-        self.log.debug(f'Getting previous message in channel {channel}')
+        logger.debug(f'Getting previous message in channel {channel}')
         resp = self.bot.conversations_history(
             channel=channel,
             latest=timestamp,

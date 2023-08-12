@@ -103,7 +103,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedC
 class SlackTools(SlackInputParser, SlackMethods):
     """Tools to make working with Slack API better"""
 
-    def __init__(self, bot_cred_entry: SimpleNamespace, parent_log: logger, use_session: bool = False):
+    def __init__(self, bot_cred_entry: SimpleNamespace, use_session: bool = False):
         """
         Args:
             bot_cred_entry: SecretStore entry, contains tokens & other secrets for connecting &
@@ -115,11 +115,9 @@ class SlackTools(SlackInputParser, SlackMethods):
                 optional keys:
                     cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
-            parent_log: the parent log to attach to.
             use_session: enable when looking to do things like upload new emojis
         """
-        super().__init__(bot_cred_entry=bot_cred_entry, parent_log=parent_log, use_session=use_session)
-        self.log = parent_log.bind(child_name=self.__class__.__name__)
+        super().__init__(bot_cred_entry=bot_cred_entry, use_session=use_session)
 
     def refresh_xoxc_token(self, new_token: str):
         if self.session is not None:

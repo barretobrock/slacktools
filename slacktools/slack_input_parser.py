@@ -85,7 +85,7 @@ class SlackInputParser:
     @staticmethod
     def parse_tag_from_text(txt: str) -> Optional[str]:
         """Parses an <@{user}> mention and extracts the user id from it"""
-        match = re.match(r'^<@(.*)>', txt)
+        match = re.match(r'^<@([A-Za-z0-9]+)>', txt)
         if match is not None:
             # IDs are stored as uppercase. This will help with matching
             return match.group(1).upper()

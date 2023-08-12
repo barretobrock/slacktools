@@ -19,12 +19,11 @@ class ParseError(Exception):
 
 class SlackSession:
 
-    def __init__(self, team: str, d_cookie: str, xoxc_token: str, parent_log: logger = None):
-        self.log = parent_log.bind(child_name=self.__class__.__name__)
+    def __init__(self, team: str, d_cookie: str, xoxc_token: str):
         self.team = team
         self.d_cookie = d_cookie
         self.xoxc_token = xoxc_token
-        self.log.debug(f'Cookie is {len(self.d_cookie)} chars and begins with "{self.d_cookie[:10]}".')
+        logger.debug(f'Cookie is {len(self.d_cookie)} chars and begins with "{self.d_cookie[:10]}".')
 
         base_url = f'https://{self.team}.slack.com'
         self.url_customize = f'{base_url}/customize/emoji'
@@ -72,9 +71,9 @@ class SlackSession:
         # Slack returns 200 OK even if upload fails, so check for status.
         response_json = resp.json()
         if not response_json['ok']:
-            self.log.error(f"Error with uploading {emoji_name}: {response_json}")
+            logger.error(f"Error with uploading {emoji_name}: {response_json}")
         else:
-            self.log.debug('Upload process seems successful')
+            logger.debug('Upload process seems successful')
         return response_json['ok']
 
     def _download_emoji_from_url(self, url: str, name: str = None) -> str:
@@ -83,11 +82,11 @@ class SlackSession:
         parsed = urlparse(url)
         filename = os.path.basename(parsed.path)
         filetype = os.path.splitext(filename)[1]
-        self.log.debug(f'File name and type parsed from URL: {filename} {filetype}')
+        logger.debug(f'File name and type parsed from URL: {filename} {filetype}')
         # Set download path
         temp_dir = tempfile.gettempdir()
         fname = filename if name is None else f'{name}{filetype}'
-        self.log.debug(f'Naming emoji: {fname}')
+        logger.debug(f'Naming emoji: {fname}')
         fpath = os.path.join(temp_dir, fname)
 
         # Download image
@@ -96,14 +95,14 @@ class SlackSession:
             data = url
         else:
             # True URL
-            self.log.debug('Beginning image download...')
+            logger.debug('Beginning image download...')
             resp = requests.get(url)
             data = resp.content
 
         # Save image to file
         write = 'wb' if isinstance(data, bytes) else 'w'
         with open(fpath, write) as f:
-            self.log.debug('Writing image to file...')
+            logger.debug('Writing image to file...')
             f.write(data)
 
         return fpath
@@ -111,9 +110,9 @@ class SlackSession:
     def upload_emoji_from_url(self, url: str, name: str = None) -> bool:
         """Uploads an emoji from a given URL with the option of changing its name"""
         # Handle downloading of emoji
-        self.log.debug('Beginning emoji download process...')
+        logger.debug('Beginning emoji download process...')
         emoji_path = self._download_emoji_from_url(url=url, name=name)
         # Upload the emoji
-        self.log.debug('Beginning emoji upload process...')
+        logger.debug('Beginning emoji upload process...')
         result = self.upload_emoji(filepath=emoji_path)
         return result

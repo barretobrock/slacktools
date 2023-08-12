@@ -6,16 +6,13 @@ from slacktools.tools import (
     SlackTools,
     build_commands,
 )
-from tests.common import (
+
+from .common import (
     get_test_logger,
     make_patcher,
     random_string,
 )
-
-
-class TestBotObj:
-    def __getattr__(self, item):
-        return 'item'
+from .mocks.objects import TestBotObj
 
 
 class TestBuildCommands(unittest.TestCase):
@@ -28,7 +25,8 @@ class TestBuildCommands(unittest.TestCase):
         self.cmds = self.load_cmds()
 
     def load_cmds(self):
-        return build_commands(self.test_bot_obj, Path(__file__).parent.joinpath('mocks/mock_commands.yaml'), log=self._log)
+        return build_commands(self.test_bot_obj, Path(__file__).parent.joinpath('mocks/mock_commands.yaml'),
+                              log=self._log)
 
     def test_build_command(self):
         """Tests build_command_output"""
@@ -46,20 +44,20 @@ class TestSlackTools(unittest.TestCase):
         self.mock_cred_entry = MagicMock(name='bot_cred_entry')
         self.mock_cred_name = 'something'
 
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=False)
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=False)
 
     def test_init(self):
         self.mock_webclient.assert_called()
         self.st.bot.auth_test.assert_called()
         self.mock_session.assert_not_called()
         # Test init when use_session is True, but no cookie, xoxc keys provided
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=True)
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=True)
         self.mock_session.assert_not_called()
 
         # Test init when use_session is True, but cookie and xoxc keys provided
         self.mock_cred_entry.d_cookie = 'aoe'
         self.mock_cred_entry.xoxc_token = 'tasoid'
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, parent_log=self._log, use_session=True)
+        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=True)
         self.mock_session.assert_called()
 
     def test_refresh_xoxc_token(self):

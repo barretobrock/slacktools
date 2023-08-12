@@ -8,6 +8,7 @@ from typing import (
 from loguru import logger
 from sqlalchemy.engine import (
     URL,
+    Engine,
     create_engine,
 )
 from sqlalchemy.orm import (
@@ -16,20 +17,11 @@ from sqlalchemy.orm import (
 )
 
 
-class PSQLClient:
+class DBClient:
     """Creates Postgres connection engine"""
 
-    def __init__(self, props: Dict, parent_log: logger, **kwargs):
-        _ = kwargs
-        self.log = parent_log.bind(child_name=self.__class__.__name__)
-        self.engine = create_engine(URL.create(
-            drivername='postgresql+psycopg2',
-            username=props.get('usr'),
-            password=props.get('pwd'),
-            host=props.get('host'),
-            port=props.get('port'),
-            database=props.get('database')
-        ))
+    def __init__(self, engine: Engine):
+        self.engine = engine
         self._dbsession = sessionmaker(bind=self.engine)
 
     @contextmanager
@@ -59,7 +51,7 @@ class PSQLClient:
             # Remove obj from session
             sess.expunge(tbl)
 
-        self.log.debug('Received request to refresh object...')
+        logger.debug('Received request to refresh db object...')
         if session is None:
             with self.session_mgr() as session:
                 tbl_obj = _refresh(sess=session, tbl=tbl_obj)
@@ -79,3 +71,27 @@ class PSQLClient:
         )
         with self.session_mgr() as session:
             session.add(err)
+
+
+class PSQLClient(DBClient):
+
+    def __init__(self, props: Dict, **kwargs):
+        self.engine = create_engine(URL.create(
+            drivername='postgresql+psycopg2',
+            username=props['usr'],
+            password=props['pwd'],
+            host=props['host'],
+            port=props['port'],
+            database=props['database']
+        ))
+        super().__init__(engine=self.engine)
+
+
+class SQLiteClient(DBClient):
+
+    def __init__(self, props: Dict, **kwargs):
+        self.engine = create_engine(URL.create(
+            drivername='sqlite',
+            database=props['database']
+        ))
+        super().__init__(engine=self.engine)

@@ -8,7 +8,8 @@ from slacktools.tools import (
     ProcessedCommandItemType,
     build_commands,
 )
-from tests.common import (
+
+from .common import (
     get_test_logger,
     make_patcher,
 )
@@ -24,8 +25,7 @@ class TestSlackBotBase(unittest.TestCase):
         self.mock_cred = MagicMock(spec=SimpleNamespace, team='theteam', xoxp_token='xoxp...',
                                    xoxb_token='xoxb...')
 
-        self.sbb = SlackBotBase(bot_cred_entry=self.mock_cred, triggers=['hello'], main_channel='main',
-                                parent_log=self._log)
+        self.sbb = SlackBotBase(bot_cred_entry=self.mock_cred, triggers=['hello'], main_channel='main')
         self.mock_webclient.assert_called()
 
     def test_build_command_output(self):

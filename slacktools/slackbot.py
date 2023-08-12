@@ -38,7 +38,7 @@ from slacktools.tools import (
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str, parent_log: logger,
+    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str,
                  is_post_exceptions: bool = False, debug: bool = False, use_session: bool = False):
         """
         Args:
@@ -57,8 +57,7 @@ class SlackBotBase(SlackTools):
             main_channel: str, the channel to send messages by default
             debug: bool, if True, will provide additional info into exceptions
         """
-        self._log = parent_log.bind(child_name=self.__class__.__name__)
-        super().__init__(bot_cred_entry=bot_cred_entry, parent_log=self._log, use_session=use_session)
+        super().__init__(bot_cred_entry=bot_cred_entry, use_session=use_session)
         self.is_post_exceptions = is_post_exceptions
         self.debug = debug
         # Enforce lowercase triggers (regex will be indifferent to case anyway
@@ -118,7 +117,7 @@ class SlackBotBase(SlackTools):
         Returns:
             list of dict, Block Kit-ready help text
         """
-        self._log.debug('Building help block')
+        logger.debug('Building help block')
         # Build out some explanation of the main commands
         main_cmd_txt = ''
         for cmd_dict in self.commands:
@@ -156,24 +155,24 @@ class SlackBotBase(SlackTools):
 
     def search_help_block(self, message: str):
         """Takes in a message and filters command descriptions for output"""
-        self.log.debug(f'Got help search command: {message}')
+        logger.debug(f'Got help search command: {message}')
         group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)
         tag = SlackInputParser.get_flag_from_command(message, flags=['t'], default=None)
 
         if group is not None:
-            self.log.debug(f'Filtering on group: {group}')
+            logger.debug(f'Filtering on group: {group}')
             filtered_by = f'group: {group}'
             cmd_list = [x for x in self.commands if x.get('group', '') == group]
         elif tag is not None:
-            self.log.debug(f'Filtering on tag: {tag}')
+            logger.debug(f'Filtering on tag: {tag}')
             filtered_by = f'tag: {tag}'
             cmd_list = [x for x in self.commands if tag in x.get('tags', [])]
         else:
-            self.log.debug('Unable to filter on group or tag. Responding to user.')
+            logger.debug('Unable to filter on group or tag. Responding to user.')
             return 'Unable to filter on commands without a tag or group. Please either include ' \
                    '`-t <tag-name>` or `-g <group-name>`'
 
-        self.log.debug(f'Found {len(cmd_list)} cmds matching {filtered_by}')
+        logger.debug(f'Found {len(cmd_list)} cmds matching {filtered_by}')
         result = ''
         for cmd_dict in cmd_list:
             result += self.build_command_output(cmd_dict)
@@ -193,14 +192,13 @@ class SlackBotBase(SlackTools):
             if matches.group(1).lower() in self.triggers:
                 # Matched using abbreviated triggers
                 trigger = matches.group(1).lower()
-                self._log.debug(f'Matched on abbreviated trigger: {trigger}, msg: {message}')
+                logger.debug(f'Matched on abbreviated trigger: {trigger}, msg: {message}')
             else:
                 # Matched using bot id
                 trigger = matches.group(2)
-                self._log.debug(f'Matched on bot id: {trigger}, msg: {message}')
+                logger.debug(f'Matched on bot id: {trigger}, msg: {message}')
             message_txt = matches.group(3).lower().strip()
             raw_message = matches.group(3).strip()
-            # self.log.debug('Message: {}'.format(message_txt))
             return trigger, message_txt, raw_message
         return None, None, None
 
@@ -228,7 +226,7 @@ class SlackBotBase(SlackTools):
                 self.handle_command(event_data)
             except Exception as e:
                 exception_msg = '{}: {}'.format(e.__class__.__name__, e)
-                self._log.error(f'Exception occurred: {exception_msg}', e)
+                logger.error(f'Exception occurred: {exception_msg}', e)
                 if not isinstance(e, RuntimeError) and self.is_post_exceptions:
                     if self.debug:
                         blocks = [
@@ -253,14 +251,14 @@ class SlackBotBase(SlackTools):
     def handle_command(self, event_data: MessageEvent):
         """Handles a bot command if it's known"""
         response = None
-        self._log.debug(f'Incoming message: {event_data.cleaned_message}')
+        logger.debug(f'Incoming message: {event_data.cleaned_message}')
 
         is_matched = False
         for resp_dict in self.commands:
             regex = resp_dict.get('pattern')
             match = re.match(regex, event_data.cleaned_message)
             if match is not None:
-                self._log.debug(f'Matched on pattern: {regex}')
+                logger.debug(f'Matched on pattern: {regex}')
                 # We've matched on a command
                 resp = resp_dict['response']
                 # Add the regex pattern into the event dict
@@ -268,16 +266,16 @@ class SlackBotBase(SlackTools):
                 if isinstance(resp, list):
                     if len(resp) == 0:
                         # Empty response placeholder... Maybe we'll use this for certain commands.
-                        self._log.debug('Empty list response')
+                        logger.debug('Empty list response')
                         response = None
                     elif isinstance(resp[0], dict):
                         # Response is a JSON blob for handling in Block Kit.
-                        self._log.debug('JSON response')
+                        logger.debug('JSON response')
                         response = resp
                     else:
                         # Copy the list to ensure changes aren't propagated to the command list
-                        self._log.debug('Possibly command response. '
-                                        'Replacing list items with variables where applicable...')
+                        logger.debug('Possibly command response. '
+                                     'Replacing list items with variables where applicable...')
                         resp_list = resp.copy()
                         # Examine list, replace any known strings ('message', 'channel', etc.)
                         #   with event context variables
@@ -288,14 +286,14 @@ class SlackBotBase(SlackTools):
                         response = self.call_command(*resp_list)
                 elif callable(resp):
                     # Handle when response is just callable
-                    self._log.debug('Callable response')
+                    logger.debug('Callable response')
                     response = resp()
                 else:
                     # String response
-                    self._log.debug('Simple string response')
+                    logger.debug('Simple string response')
                     response = resp
                 is_matched = True
-                self._log.debug(f'Response is of type: {type(response)}')
+                logger.debug(f'Response is of type: {type(response)}')
                 break
 
         if event_data.cleaned_message != '' and not is_matched:
@@ -328,7 +326,7 @@ class SlackBotBase(SlackTools):
         determines how the command should be handled
         """
         event_data = SlashCommandEvent(event_dict=event_dict)
-        self._log.debug(f'Parsed slash command from {event_data.user_name}: {event_data.full_message}')
+        logger.debug(f'Parsed slash command from {event_data.user_name}: {event_data.full_message}')
 
         self.handle_command(MessageEvent(StandardMessageEventType(
             type='message',
