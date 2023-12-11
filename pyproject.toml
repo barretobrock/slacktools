@@ -18,23 +18,23 @@ include = ["CHANGELOG.md"]
 [tool.poetry.dependencies]
 python = "^3.10"
 pukr = { git = "https://github.com/barretobrock/pukr.git", branch = "main" }
-Flask = "~2.3"
-loguru = "~0"
-pandas = "~2"
-pygsheets = "~2"
-pykeepass = "~4"
-pyyaml = "~6"
-requests = "~2"
-slackclient = "~2.9"
-sqlalchemy = "~2"
-tabulate = "~0.9"
+Flask = "^3"
+loguru = "^0"
+pandas = "^2"
+pygsheets = "^2"
+pykeepass = "^4"
+pyyaml = "^6"
+requests = "^2"
+slackclient = "^2.9"
+sqlalchemy = "^2"
+tabulate = "^0.9"
 
 [tool.poetry.dev-dependencies]
-pre-commit = "~3"
-pytest = "~7"
-pytest-cov = "~4"
-flake8 = "~6"
-tox = "~4"
+pre-commit = "^3"
+pytest = "^7"
+pytest-cov = "^4"
+flake8 = "^6"
+tox = "^4"
 
 [tool.isort]
 profile = 'black'
