@@ -18,7 +18,7 @@ include = ["CHANGELOG.md"]
 [tool.poetry.dependencies]
 python = "^3.10"
 pukr = { git = "https://github.com/barretobrock/pukr.git", branch = "main" }
-Flask = "^3"
+Flask = ">=2.2"
 loguru = "^0"
 pandas = "^2"
 pygsheets = "^2"
