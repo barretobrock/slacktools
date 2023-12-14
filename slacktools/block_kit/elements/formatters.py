@@ -48,7 +48,7 @@ class DateFormatter:
             my_str = "Hello, {DateFormatType.date_pretty.value} at {DateFormatType.time.value} we will have the thing"
             dt_obj = datetime.now()
             localize_dates(dt_obj, format_text=my_str)
-        
+
         References:
             https://api.slack.com/reference/surfaces/formatting#date-formatting
         """

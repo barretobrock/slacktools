@@ -1,13 +1,15 @@
 from typing import (
     List,
     Optional,
-    Union
+    Union,
 )
 
-
 from slacktools.block_kit.base import BaseElement
-from slacktools.block_kit.elements.display.text import PlainTextElement, MarkdownTextElement
 from slacktools.block_kit.elements.display.image import ImageElement
+from slacktools.block_kit.elements.display.text import (
+    MarkdownTextElement,
+    PlainTextElement,
+)
 from slacktools.block_kit.elements.input.button import ButtonElement
 
 

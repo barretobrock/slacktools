@@ -1,10 +1,8 @@
 from typing import (
-    Dict,
     List,
-    Optional,
-    TypedDict,
-    Union
+    Union,
 )
+
 from slacktools.block_kit.base import BaseElement
 
 
