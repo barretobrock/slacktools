@@ -166,11 +166,15 @@ class SlackMethods:
             # Return the timestamp from the message
             return dm_chan, ts
 
-    def send_message(self, channel: str, message: str, ret_ts: bool = False, ret_all: bool = False,
-                     **kwargs) -> Optional[Union[str, SlackResponse]]:
+    def send_message(self, channel: str, message: str = None, ret_ts: bool = False, ret_all: bool = False,
+                     blocks: List[Dict] = None, **kwargs) -> Optional[Union[str, SlackResponse]]:
         """Sends a message to the specific channel"""
         logger.debug(f'Sending channel message in {channel}.')
-        resp = self.bot.chat_postMessage(channel=channel, text=message, **kwargs)
+        if blocks is not None:
+            if isinstance(blocks, dict):
+                # Correct dict to list of dict
+                blocks = [blocks]
+        resp = self.bot.chat_postMessage(channel=channel, text=message, blocks=blocks, **kwargs)
         self._check_for_exception(resp)
         if ret_ts:
             # Return the timestamp from the message

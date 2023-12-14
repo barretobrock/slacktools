@@ -76,7 +76,8 @@ class SlackSession:
             logger.debug('Upload process seems successful')
         return response_json['ok']
 
-    def _download_emoji_from_url(self, url: str, name: str = None) -> str:
+    @staticmethod
+    def _download_emoji_from_url(url: str, name: str = None) -> str:
         """Downloads a given emoji from a url into the temp folder, returning its path for later use"""
         # Extract the file name and type from url
         parsed = urlparse(url)

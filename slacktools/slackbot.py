@@ -25,7 +25,13 @@ from slacktools.api.slash.slash import (
     SlashCommandEvent,
     SlashCommandEventType,
 )
-from slacktools.block_kit import BlockKitBuilder as BKitB
+from slacktools.block_kit.base import dictify_blocks
+from slacktools.block_kit.blocks import (
+    DividerBlock,
+    MarkdownContextBlock,
+    MarkdownSectionBlock,
+    PlaintextSectionBlock,
+)
 from slacktools.slack_input_parser import (
     SlackInputParser,
     block_text_converter,
@@ -107,7 +113,8 @@ class SlackBotBase(SlackTools):
             desc += f'\n{tab_char * 1}Example Usage:\n{tab_char}{example_desc}\n'
         return f'*`{pattern}`*: {desc}\n'
 
-    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List[Dict]:
+    @dictify_blocks
+    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List:
         """Builds bot's description of functions into a giant wall of help text
         Args:
             intro: str, The bot's introduction
@@ -138,22 +145,20 @@ class SlackBotBase(SlackTools):
         tags_txt = ''.join(sorted([f' *`{g}`* ' for g in tags]))
 
         blocks = [
-            BKitB.make_section_block(
-                text_obj=BKitB.markdown_section(text=intro),
-                accessory=BKitB.make_image_block(image_url=avi_url, alt_text=avi_alt, title=avi_alt)
-            ),
-            BKitB.make_divider_block(),
-            BKitB.make_section_block(BKitB.markdown_section(text=main_cmd_txt)),
-            BKitB.make_divider_block(),
-            BKitB.make_section_block(
-                text_obj=BKitB.markdown_section(f'Search more commands: `shelp -g` or `shelp -t` and apply:\n'
-                                                f'Groups: {group_txt}\nTags: {tags_txt}')
-            )
+            PlaintextSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
+            DividerBlock(),
+            MarkdownSectionBlock(main_cmd_txt),
+            DividerBlock(),
+            MarkdownSectionBlock([
+                'Search more commands: `shelp -g` or `shelp -t` and apply:',
+                f'Groups: {group_txt}\nTags: {tags_txt}'
+            ]),
         ]
 
         return blocks
 
-    def search_help_block(self, message: str):
+    @dictify_blocks
+    def search_help_block(self, message: str) -> Union[List, str]:
         """Takes in a message and filters command descriptions for output"""
         logger.debug(f'Got help search command: {message}')
         group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)
@@ -178,11 +183,8 @@ class SlackBotBase(SlackTools):
             result += self.build_command_output(cmd_dict)
 
         return [
-            BKitB.make_context_block(
-                elements=[BKitB.markdown_section(text=f'*`{len(cmd_list)}/{len(self.commands)}`* commands '
-                                                      f'filtered by {filtered_by}')]
-            ),
-            BKitB.make_section_block(text_obj=BKitB.markdown_section(text=result))
+            MarkdownContextBlock(f'*`{len(cmd_list)}/{len(self.commands)}`* commands filtered by {filtered_by}'),
+            MarkdownSectionBlock(result)
         ]
 
     def parse_direct_mention(self, message: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -230,17 +232,9 @@ class SlackBotBase(SlackTools):
                 if not isinstance(e, RuntimeError) and self.is_post_exceptions:
                     if self.debug:
                         blocks = [
-                            BKitB.make_context_block(
-                                elements=[BKitB.markdown_section(
-                                    text=f"Exception occurred: \n*`{exception_msg}`*"
-                                )]
-                            ),
-                            BKitB.make_divider_block(),
-                            BKitB.make_context_block(
-                                elements=[BKitB.markdown_section(
-                                    text=f'```{traceback.format_exc()}```'
-                                )]
-                            )
+                            MarkdownContextBlock(f"Exception occurred: \n*`{exception_msg}`*").asdict(),
+                            DividerBlock().asdict(),
+                            MarkdownContextBlock(f'```{traceback.format_exc()}```').asdict()
                         ]
                         self.send_message(event_data.channel_id, message='', blocks=blocks,
                                           thread_ts=event_data.thread_ts)
