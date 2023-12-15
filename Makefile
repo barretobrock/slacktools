@@ -20,6 +20,8 @@ push: check-ppm-path
 
 check:
 	pre-commit run --all-files
+dev-install:
+	pre-commit install
 install:
 	# First-time install - use when lock file is stable
 	poetry install -v
