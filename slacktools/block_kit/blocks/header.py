@@ -4,7 +4,7 @@ from slacktools.block_kit.elements.display.text import PlainTextElement
 
 class HeaderBlock(BaseElement):
     """
-    https://api.slack.com/reference/block-kit/blocks#context
+    https://api.slack.com/reference/block-kit/blocks#header
     """
     type: str = 'header'
     text: PlainTextElement
