@@ -16,9 +16,9 @@ from typing import (
 
 from loguru import logger
 import requests
-from slack import WebClient
-from slack.errors import SlackApiError
-from slack.web.slack_response import SlackResponse
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import WebClient
+from slack_sdk.web.slack_response import SlackResponse
 
 from slacktools.api.events.types import (
     UserChangeType,
