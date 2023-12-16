@@ -1,24 +1,15 @@
 from datetime import datetime
+from typing import Dict
 
-from slacktools.api.events.pin_added_or_removed import PinType
-from slacktools.api.events.types import (
-    PinEventItemType,
-    PinEventMessageItemType,
-    PinEventType,
-)
-from slacktools.api.web.types import (
-    PinApiMessageItemType,
-    PinApiObjectType,
-)
 from tests.common import random_string
 
 
-def build_mock_pin_event(pin_type: PinType, text: str = 'this is a test', uid: str = 'USLKJWEI21', ts: str = None,
-                         is_bot: bool = False) -> PinEventType:
+def build_mock_pin_event(pin_type: str, text: str = 'this is a test', uid: str = 'USLKJWEI21', ts: str = None,
+                         is_bot: bool = False) -> Dict:
     _ts = f'{datetime.now().timestamp()}' if ts is None else ts
     channel_id = random_string(12).upper()
 
-    msg_item = PinEventMessageItemType(
+    msg_item = dict(
         type='message',
         user=uid,
         username='some_user23',
@@ -36,11 +27,11 @@ def build_mock_pin_event(pin_type: PinType, text: str = 'this is a test', uid: s
             'username': None
         })
 
-    resp_dict = PinEventType(
-        type=pin_type.name,
+    resp_dict = dict(
+        type=pin_type,
         user=uid,
         channel_id=channel_id,
-        item=PinEventItemType(
+        item=dict(
             type='message',
             created=int(float(_ts)),
             created_by=uid,
@@ -55,10 +46,10 @@ def build_mock_pin_event(pin_type: PinType, text: str = 'this is a test', uid: s
 
 
 def build_mock_pin_api_resp(text: str = 'this is a test', uid: str = 'USLKJWEI21', ts: str = None,
-                            is_bot: bool = False) -> PinApiObjectType:
+                            is_bot: bool = False) -> Dict:
     _ts = f'{datetime.now().timestamp()}' if ts is None else ts
     channel_id = random_string(12).upper()
-    msg_item = PinApiMessageItemType(
+    msg_item = dict(
         type='message',
         text=text,
         ts=_ts,
@@ -71,7 +62,7 @@ def build_mock_pin_api_resp(text: str = 'this is a test', uid: str = 'USLKJWEI21
         msg_item['bot_id'] = f'B{uid[1:]}'
     else:
         msg_item['user'] = uid
-    resp_dict = PinApiObjectType(
+    resp_dict = dict(
         type='message',
         created=int(float(_ts)),
         created_by=uid,

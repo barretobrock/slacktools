@@ -1,10 +1,6 @@
 from datetime import datetime
 from typing import Dict
 
-from slacktools.api.events.types import (
-    UserInfoType,
-    UserProfileType,
-)
 from tests.common import random_string
 
 
@@ -14,7 +10,7 @@ def build_mock_user_change_resp(real_name: str, display_name: str, uid: str = 'U
     _ts = f'{datetime.now().timestamp()}' if ts is None else ts
     team_id = random_string(n_chars=10).upper()
 
-    resp_dict = UserInfoType(
+    resp_dict = dict(
         id=uid,
         team_id=team_id,
         name='email.name',
@@ -24,7 +20,7 @@ def build_mock_user_change_resp(real_name: str, display_name: str, uid: str = 'U
         tz='America/Chicago',
         tz_label='Central Daylight Time',
         tz_offset=-18000,
-        profile=UserProfileType(
+        profile=dict(
             title='',
             phone='5555555555',
             skype='',
@@ -68,4 +64,4 @@ def build_mock_user_change_resp(real_name: str, display_name: str, uid: str = 'U
         locale='en-US'
     )
 
-    return resp_dict
+    return {'user': resp_dict}

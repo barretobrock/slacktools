@@ -1,7 +1,16 @@
 from typing import Dict
 import unittest
 
-from slacktools.block_kit import BlockKitBuilder as BKitB
+from slacktools.block_kit.blocks import (
+    DividerBlock,
+    HeaderBlock,
+)
+from slacktools.block_kit.elements.display import (
+    ImageElement,
+    MarkdownTextElement,
+    PlainTextElement,
+)
+from slacktools.block_kit.elements.formatters import TextFormatter
 
 from .common import (
     get_test_logger,
@@ -21,7 +30,7 @@ class TestBlockKit(unittest.TestCase):
             'text': txt,
             'emoji': True
         }
-        resp = BKitB.plaintext_section(text=txt)  # type: Dict
+        resp = PlainTextElement(text=txt).asdict()  # type: Dict
         self.assertDictEqual(exp, resp)
 
     def test_markdown(self):
@@ -31,23 +40,23 @@ class TestBlockKit(unittest.TestCase):
             'text': txt,
             'verbatim': False
         }
-        resp = BKitB.markdown_section(text=txt)  # type: Dict
+        resp = MarkdownTextElement(text=txt).asdict()
         self.assertDictEqual(exp, resp)
 
     def test_make_header(self):
         txt = 'hello'
         exp = {
             'type': 'header',
-            'text': BKitB.plaintext_section(txt),
+            'text': PlainTextElement(txt).asdict(),
         }
-        resp = BKitB.make_header_block(text=txt)  # type: Dict
+        resp = HeaderBlock(PlainTextElement(text=txt)).asdict()
         self.assertDictEqual(exp, resp)
 
     def test_divider(self):
         exp = {
             'type': 'divider'
         }
-        resp = BKitB.make_divider_block()  # type: Dict
+        resp = DividerBlock().asdict()  # type: Dict
         self.assertDictEqual(exp, resp)
 
     def test_make_image_element(self):
@@ -58,13 +67,13 @@ class TestBlockKit(unittest.TestCase):
             'image_url': url,
             'alt_text': alt_txt
         }
-        resp = BKitB.make_image_element(url=url, alt_txt=alt_txt)  # type: Dict
+        resp = ImageElement(image_url=url, alt_text=alt_txt).asdict()
         self.assertDictEqual(exp, resp)
 
     def test_build_link(self):
         url = random_string(100)
         name = 'something'
-        resp = BKitB.build_link(url=url, text=name)
+        resp = TextFormatter.build_link(url=url, link_name=name)
         self.assertEqual(f'<{url}|{name}>', resp)
 
 
