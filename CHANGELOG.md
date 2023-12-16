@@ -15,6 +15,14 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.1] - 2023-12-16
+#### Changed
+ - Migrated to `slack-sdk`
+ - Block kit classes now behave more like classes than dicts
+ - Update `pre-commit` plugins
+#### Deprecated
+ - `BlockKitBuilder`
+ 
 ### [2.0.0] - 2023-08-11
 #### Added
  - Python 3.11 support

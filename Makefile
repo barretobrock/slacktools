@@ -1,6 +1,6 @@
 PROJECT 		:= slacktools
 PY_LIB_NAME 	:= slacktools
-VENV_NAME 		:= slackspace
+VENV_NAME 		:= slacktools
 MAIN_BRANCH 	:= master
 
 
