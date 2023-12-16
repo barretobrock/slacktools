@@ -1,4 +1,1 @@
-from .slash import (
-    SlashCommandEvent,
-    SlashCommandEventType,
-)
+from .slash import SlashCommandEvent

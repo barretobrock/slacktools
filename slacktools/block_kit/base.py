@@ -17,7 +17,7 @@ class BaseElement:
 
     def __init__(self, **kwargs):
         for name, val in kwargs.items():
-            setattr(self, name, val)
+            self.__setattr__(name, val)
 
     def asdict(self) -> Dict:
         resp_dict = {}
@@ -46,6 +46,11 @@ class BaseElement:
 
 
 def dictify_blocks(f):
+    """
+    This is meant to be used as a decorator on methods that return a list of blocks.
+        The process iterates through the pre-formatted BaseElement-based objects and calls `.asdict()`
+        to render them to dicts.
+    """
     def inner(*args, **kwargs):
         result = f(*args, **kwargs)
 

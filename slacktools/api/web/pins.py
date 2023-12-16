@@ -5,25 +5,41 @@ from typing import (
 
 from slacktools.api.base import BaseApiObject
 
-from .types import PinApiObjectType
 
-
-class PinApiMessageItem:
-    type: str   # 'message'
-    text: str
-    user: str   # user id / author
-    ts: str
-    blocks: List[Dict]
-    pinned_to: List[str]  # List[channel_id]
+class PinMessage(BaseApiObject):
     permalink: str
-
-
-class PinApiObject(BaseApiObject):
+    pinned_to: List[str]
+    text: str
+    ts: str
     type: str
-    created: int
-    created_by: str  # user id
-    channel: str     # channel id
-    message: PinApiMessageItem
+    user: str
 
-    def __init__(self, event_dict: PinApiObjectType):
-        super().__init__(event_dict=event_dict)
+    def __init__(self, resp_dict: Dict = None, **kwargs):
+        super().__init__(resp_dict, **kwargs)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}(ts={self.ts})>'
+
+
+class Pin(BaseApiObject):
+    channel: str
+    created: int
+    created_by: str
+    message: PinMessage
+    type: str
+
+    def __init__(self, resp_dict: Dict = None, **kwargs):
+        super().__init__(resp_dict, **kwargs)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}(created={self.created})>'
+
+
+class PinsList(BaseApiObject):
+    items: List[Pin]
+
+    def __init__(self, resp_dict: Dict = None, **kwargs):
+        super().__init__(resp_dict, **kwargs)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}(items={len(self.items)})>'

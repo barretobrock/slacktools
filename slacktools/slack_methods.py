@@ -20,11 +20,12 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.web import WebClient
 from slack_sdk.web.slack_response import SlackResponse
 
-from slacktools.api.events.types import (
-    UserChangeType,
-    UserInfoType,
+from slacktools.api.web.conversations import (
+    ConversationHistory,
+    ConversationMembers,
+    Message,
 )
-from slacktools.api.events.user_change import UserInfo
+from slacktools.api.web.users import UserInfo
 from slacktools.slack_session import SlackSession
 
 
@@ -56,7 +57,7 @@ class SlackMethods:
                                'attributes weren\'t found in the cred entry.')
 
     @staticmethod
-    def _check_for_exception(response: Union[Future, SlackResponse]):
+    def _check_for_exception(response: Union[Future, SlackResponse], is_raise: bool = False):
         """Checks API response for exception info.
         If error, will return error message and any additional info
         """
@@ -68,13 +69,10 @@ class SlackMethods:
                 err_msg = response['error']
                 if err_msg == 'missing_scope':
                     err_msg += '\nneeded: {needed}\n'.format(**response.data)
-                raise Exception(err_msg)
-
-    @staticmethod
-    def clean_user_info(user_dict: UserInfoType) -> UserInfo:
-        """Takes in a user dict of the user's info and flattens it,
-        returning a flat dictionary of only the useful data"""
-        return UserInfo(user_dict)
+                if is_raise:
+                    raise Exception(err_msg)
+                else:
+                    logger.error(err_msg)
 
     def get_channel_members(self, channel: str, humans_only: bool = False) -> List[UserInfo]:
         """Collect members of a particular channel
@@ -84,54 +82,43 @@ class SlackMethods:
         """
         logger.debug(f'Getting channel members for channel {channel}.')
         resp = self.bot.conversations_members(channel=channel)
+        channel_members = ConversationMembers(resp.data)
 
-        # Check response for exception
-        self._check_for_exception(resp)
-        user_ids = resp['members']
+        user_ids = channel_members.members
         users = []
         for user in self.get_users_info(user_ids):
-            users.append(self.clean_user_info(user))
+            users.append(user)
 
         return [user for user in users if not user.is_bot] if humans_only else users
 
-    def get_users_info(self, user_list: List[str], throw_exception: bool = True) -> List[dict]:
+    def get_users_info(self, user_id_list: List[str], throw_exception: bool = True) -> List[UserInfo]:
         """Collects info from a list of user ids"""
         logger.debug('Collecting users\' info.')
-        user_info = []
-        for user in user_list:
-            respdata = self.get_user_info(user_id=user, throw_exception=throw_exception)
-            if 'user' in respdata.keys():
-                user_info.append(respdata['user'])
-        return user_info
+        user_info_list = []
+        for user in user_id_list:
+            user_info_list.append(self.get_user_info(user_id=user, throw_exception=throw_exception))
+        return user_info_list
 
-    def get_user_info(self, user_id: str, throw_exception: bool = False) -> UserChangeType:
+    def get_user_info(self, user_id: str, throw_exception: bool = False) -> Optional[UserInfo]:
         """Gets individual user info"""
-        resp = None
-        respdata = None
+        user = resp = None
         try:
             resp = self.bot.users_info(user=user_id)
-            respdata = resp.data
+            user = UserInfo(resp['user'])
         except SlackApiError:
-            if throw_exception:
-                self._check_for_exception(resp)
+            self._check_for_exception(resp, is_raise=throw_exception)
             if resp['error'] == 'user_not_found':
                 # Unsuccessful at finding user. Add in a placeholder.
-                logger.debug(f'User not found: {user_id}.')
-                respdata = {
-                    'user': {
-                        'id': user_id,
-                        'real_name': 'Unknown User',
-                        'name': 'unknown_user',
-                        'display_name': 'unknown_user',
-                    }
-                }
-        return respdata
+                logger.error(f'User not found: {user_id}.')
+                user = UserInfo(id=user_id, real_name='Unknown User', name='unknown_user', display_name='unknown_user')
+
+        return user
 
     def open_dialog(self, dialog: Dict, trigger_id: str, **kwargs):
         """Open a dialog with a user by passing in a trigger id received from another interaction"""
         resp = self.bot.dialog_open(dialog=dialog, trigger_id=trigger_id, **kwargs)
         # Check response for exception
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
 
     def update_home_tab(self, user_id: str, blocks: List[Dict]):
         """Updates the app's home tab with info"""
@@ -146,7 +133,7 @@ class SlackMethods:
         logger.debug(f'Sending private channel message: {channel} to {user_id}.')
         resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
         # Check response for exception
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
         if ret_ts:
             # Return the timestamp from the message
             return resp['message_ts']
@@ -159,7 +146,7 @@ class SlackMethods:
         resp = self.bot.conversations_open(users=user_id)
         dm_chan = resp['channel']['id']
         # Check response for exception
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
         # DM the user
         ts = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, **kwargs)
         if ret_ts:
@@ -175,7 +162,7 @@ class SlackMethods:
                 # Correct dict to list of dict
                 blocks = [blocks]
         resp = self.bot.chat_postMessage(channel=channel, text=message, blocks=blocks, **kwargs)
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
         if ret_ts:
             # Return the timestamp from the message
             return resp['ts']
@@ -186,7 +173,7 @@ class SlackMethods:
         """Updates a message"""
         logger.debug(f'Updating message in {channel}.')
         resp = self.bot.chat_update(channel=channel, ts=ts, text=message, blocks=blocks)
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
 
     def delete_message(self, message_dict: dict = None, channel: str = None, ts: str = None):
         """Deletes a given message
@@ -200,25 +187,29 @@ class SlackMethods:
             resp = self.user.chat_delete(channel=message_dict['channel']['id'], ts=message_dict['ts'])
         else:
             resp = self.user.chat_delete(channel=channel, ts=ts)
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
 
-    def get_channel_history(self, channel: str, limit: int = 1000) -> List[dict]:
+    def get_channel_history(self, channel: str, limit: int = 1000, latest: str = None,
+                            is_raise: bool = False) -> ConversationHistory:
         """Collect channel history"""
         logger.debug(f'Getting channel history for channel {channel}.')
-        resp = self.bot.conversations_history(channel=channel, limit=limit)
-        self._check_for_exception(resp)
-        return resp['messages']
+        resp = self.bot.conversations_history(channel=channel, limit=limit, latest=latest)
+        self._check_for_exception(resp, is_raise=is_raise)
+        channel_history = ConversationHistory(resp.data)
+
+        return channel_history
 
     @staticmethod
     def create_channel(channel_name: str, is_private: bool = False):
         """Creates a public/private channel"""
         logger.debug(f'Creating channel {channel_name} as a {"private" if is_private else "public"} channel')
+        # TODO this
 
     def invite_to_channel(self, channel: str, user_list: List[str]):
         """Invites a list of users to a given channel"""
         logger.debug(f'Inviting users: {user_list} to channel {channel}')
         resp = self.bot.channels_invite(channel=channel, user=','.join(user_list))
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
 
     def search_messages_by_date(self, channel: str = None, from_uid: str = None, after_date: datetime = None,
                                 after_ts: datetime = None, on_date: datetime = None, during_m: datetime = None,
@@ -272,7 +263,7 @@ class SlackMethods:
                 count=max_results
             )
             try:
-                self._check_for_exception(resp)
+                self._check_for_exception(resp, is_raise=True)
                 break
             except Exception as e:
                 print('Call failed. Error: {}'.format(e))
@@ -305,25 +296,19 @@ class SlackMethods:
             filename=filename,
             initial_comment=txt
         )
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
 
     def get_emojis(self) -> Dict[str, str]:
         """Returns a dict of emojis for a given workspace"""
         resp = self.bot.emoji_list()
-        self._check_for_exception(resp)
+        self._check_for_exception(resp, is_raise=True)
         return resp['emoji']
 
-    def get_previous_msg_in_channel(self, channel: str, timestamp: str) -> Optional[Dict]:
+    def get_previous_msg_in_channel(self, channel: str, timestamp: str = None) -> Optional[Message]:
         """Gets the previous message from the channel"""
         logger.debug(f'Getting previous message in channel {channel}')
-        resp = self.bot.conversations_history(
-            channel=channel,
-            latest=timestamp,
-            limit=10)
-        if not resp['ok']:
-            return None
-        if 'messages' in resp.data.keys():
-            msgs = resp['messages']
-            last_msg = msgs[0]
-            return last_msg
+        channel_history = self.get_channel_history(channel=channel, limit=10, latest=timestamp, is_raise=False)
+        if channel_history.messages is not None:
+            if len(channel_history.messages) > 0:
+                return channel_history.messages[0]
         return None

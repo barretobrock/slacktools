@@ -46,7 +46,7 @@ def nested_dict_field_extractor_replacer(d: Dict, num: int = 0, placeholders: Di
     return placeholders, d, num
 
 
-def block_text_converter(blocks: List[dict], callable_list: list) -> List[dict]:
+def block_text_converter(blocks: List[Dict], callable_list: List) -> List[Dict]:
     """
     Process:
         1. Iterates through a block, grabs text from target fields, replaces it with 'placeholder_x',
