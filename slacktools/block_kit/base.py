@@ -1,4 +1,5 @@
 from typing import (
+    Callable,
     Dict,
     List,
     Union,
@@ -45,13 +46,13 @@ class BaseElement:
             raise ExceededMaxLengthException(f'Key "{key}" exceeded the max length allowed: {value_len} / {max_len}')
 
 
-def dictify_blocks(f):
+def dictify_blocks(f) -> Callable:
     """
     This is meant to be used as a decorator on methods that return a list of blocks.
         The process iterates through the pre-formatted BaseElement-based objects and calls `.asdict()`
         to render them to dicts.
     """
-    def inner(*args, **kwargs):
+    def inner(*args, **kwargs) -> List[Dict]:
         result = f(*args, **kwargs)
 
         if isinstance(result, list):
