@@ -8,7 +8,10 @@ from .context import (
     PlainTextContextBlock,
 )
 from .divider import DividerBlock
-from .header import HeaderBlock
+from .header import (
+    HeaderBlock,
+    PlainTextHeaderBlock,
+)
 from .image import ImageBlock
 from .input import (
     InputBlock,
@@ -20,7 +23,7 @@ from .section import (
     MarkdownSectionBlock,
     MultiStaticSelectSectionBlock,
     MultiUserSelectSectionBlock,
-    PlaintextSectionBlock,
+    PlainTextSectionBlock,
     SectionBlock,
     StaticSelectSectionBlock,
     UserSelectSectionBlock,

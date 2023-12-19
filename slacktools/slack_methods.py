@@ -11,6 +11,7 @@ from typing import (
     List,
     Optional,
     Tuple,
+    Type,
     Union,
 )
 
@@ -26,6 +27,10 @@ from slacktools.api.web.conversations import (
     Message,
 )
 from slacktools.api.web.users import UserInfo
+from slacktools.block_kit.base import (
+    BaseElement,
+    BlocksType,
+)
 from slacktools.slack_session import SlackSession
 
 
@@ -128,17 +133,21 @@ class SlackMethods:
         })
 
     def private_channel_message(self, user_id: str, channel: str, message: str, ret_ts: bool = False,
-                                **kwargs) -> Optional[str]:
+                                blocks: BlocksType = None, **kwargs) -> Optional[str]:
         """Send a message to a user on the channel"""
         logger.debug(f'Sending private channel message: {channel} to {user_id}.')
-        resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, **kwargs)
+
+        if blocks is not None:
+            blocks = self._dictify_blocks(blocks)
+
+        resp = self.bot.chat_postEphemeral(channel=channel, user=user_id, text=message, blocks=blocks, **kwargs)
         # Check response for exception
         self._check_for_exception(resp, is_raise=True)
         if ret_ts:
             # Return the timestamp from the message
             return resp['message_ts']
 
-    def private_message(self, user_id: str, message: str, ret_ts: bool = False,
+    def private_message(self, user_id: str, message: str, ret_ts: bool = False, blocks: BlocksType = None,
                         **kwargs) -> Optional[Tuple[str, str]]:
         """Send private message to user"""
         logger.debug(f'Sending private message to {user_id}.')
@@ -147,20 +156,33 @@ class SlackMethods:
         dm_chan = resp['channel']['id']
         # Check response for exception
         self._check_for_exception(resp, is_raise=True)
+
+        if blocks is not None:
+            blocks = self._dictify_blocks(blocks)
+
         # DM the user
-        ts = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, **kwargs)
+        ts = self.send_message(channel=dm_chan, message=message, ret_ts=ret_ts, blocks=blocks, **kwargs)
         if ret_ts:
             # Return the timestamp from the message
             return dm_chan, ts
 
+    @staticmethod
+    def _dictify_blocks(blocks_list: BlocksType) -> List[Dict]:
+        new_blocks = []
+        for block in blocks_list:
+            if isinstance(block, BaseElement):
+                new_blocks.append(block.asdict())
+            else:
+                new_blocks.append(block)
+        return new_blocks
+
     def send_message(self, channel: str, message: str = None, ret_ts: bool = False, ret_all: bool = False,
-                     blocks: List[Dict] = None, **kwargs) -> Optional[Union[str, SlackResponse]]:
+                     blocks: BlocksType = None, **kwargs) -> Optional[Union[str, SlackResponse]]:
         """Sends a message to the specific channel"""
         logger.debug(f'Sending channel message in {channel}.')
         if blocks is not None:
-            if isinstance(blocks, dict):
-                # Correct dict to list of dict
-                blocks = [blocks]
+            blocks = self._dictify_blocks(blocks)
+
         resp = self.bot.chat_postMessage(channel=channel, text=message, blocks=blocks, **kwargs)
         self._check_for_exception(resp, is_raise=True)
         if ret_ts:
@@ -169,9 +191,11 @@ class SlackMethods:
         if ret_all:
             return resp
 
-    def update_message(self, channel: str, ts: str, message: str = None, blocks: List[dict] = None):
+    def update_message(self, channel: str, ts: str, message: str = None, blocks: BlocksType = None):
         """Updates a message"""
         logger.debug(f'Updating message in {channel}.')
+        if blocks is not None:
+            blocks = self._dictify_blocks(blocks)
         resp = self.bot.chat_update(channel=channel, ts=ts, text=message, blocks=blocks)
         self._check_for_exception(resp, is_raise=True)
 

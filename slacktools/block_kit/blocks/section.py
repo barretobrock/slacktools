@@ -47,7 +47,7 @@ class SectionBlock(BaseElement):
         super().__init__(type=self.type)
 
 
-class PlaintextSectionBlock(SectionBlock):
+class PlainTextSectionBlock(SectionBlock):
     def __init__(self, text: Union[str, List[str]], joiner: str = '\n', image_url: str = None,
                  image_alt_txt: str = ''):
         accessory = None

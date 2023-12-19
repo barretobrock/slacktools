@@ -15,6 +15,15 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.2] - 2023-12-18
+#### Added
+ - `BlocksType` to help with type hints
+ - `PlainTextHeaderBlock`
+#### Changed
+ - Slack methods that use blocks now scan blocks for convertible elements before sending
+#### Fixed
+ - Capitalization on a class name
+ 
 ### [2.0.1] - 2023-12-16
 #### Changed
  - Migrated to `slack-sdk`

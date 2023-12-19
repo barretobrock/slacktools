@@ -18,12 +18,15 @@ from loguru import logger
 
 from slacktools.api.events.message import Message
 from slacktools.api.slash.slash import SlashCommandEvent
-from slacktools.block_kit.base import dictify_blocks
+from slacktools.block_kit.base import (
+    BlocksType,
+    dictify_blocks,
+)
 from slacktools.block_kit.blocks import (
     DividerBlock,
     MarkdownContextBlock,
     MarkdownSectionBlock,
-    PlaintextSectionBlock,
+    PlainTextSectionBlock,
 )
 from slacktools.slack_input_parser import (
     SlackInputParser,
@@ -138,7 +141,7 @@ class SlackBotBase(SlackTools):
         tags_txt = ''.join(sorted([f' *`{g}`* ' for g in tags]))
 
         blocks = [
-            PlaintextSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
+            PlainTextSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
             DividerBlock(),
             MarkdownSectionBlock(main_cmd_txt),
             DividerBlock(),
@@ -151,7 +154,7 @@ class SlackBotBase(SlackTools):
         return blocks
 
     @dictify_blocks
-    def search_help_block(self, message: str) -> Union[List, str]:
+    def search_help_block(self, message: str) -> Union[BlocksType, str]:
         """Takes in a message and filters command descriptions for output"""
         logger.debug(f'Got help search command: {message}')
         group = SlackInputParser.get_flag_from_command(message, flags=['g'], default=None)

@@ -2,6 +2,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Type,
     Union,
 )
 
@@ -66,3 +67,6 @@ def dictify_blocks(f) -> Callable:
         else:
             return result
     return inner
+
+
+BlocksType = List[Union[Dict, BaseElement]]
