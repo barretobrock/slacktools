@@ -21,7 +21,7 @@ class HeaderBlock(BaseElement):
             self.block_id = block_id
 
         super().__init__(type=self.type)
-        self.length_assertion(self.text.text, 'header_text', 10)
+        self.length_assertion(self.text.text, 'header_text', 150)
 
 
 class PlainTextHeaderBlock(HeaderBlock):

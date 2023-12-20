@@ -25,22 +25,24 @@ class Message(BaseApiObject):
     edited: Optional[EditedMessage]
     # Not part of the actual response
     channel_id: str
-    thread_ts: str
+    thread_ts: Optional[str]
     raw_text: str
     raw_message: str
     message_hash: str
     cleaned_message: str
     match_pattern: str
+    is_in_thread: bool = False
 
     def __init__(self, event_dict: Dict = None, **kwargs):
         self.blocks = None
         self.subtype = None
+        self.thread_ts = None
         super().__init__(event_dict, **kwargs)
         self.raw_text = self.text
-        self.thread_ts = self.ts
         self.channel_id = self.channel
         self.message_hash = f'{self.channel_id}_{self.event_ts}'
         self.cleaned_message = self.raw_message = self.raw_text
+        self.is_in_thread = self.thread_ts is not None
 
     def take_processed_message(self, clean_msg: str, raw_message: str):
         self.cleaned_message = clean_msg
