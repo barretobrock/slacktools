@@ -41,23 +41,27 @@ class TestSlackTools(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_webclient = make_patcher(self, 'slacktools.slack_methods.WebClient')
         self.mock_session = make_patcher(self, 'slacktools.slack_methods.SlackSession')
-        self.mock_cred_entry = MagicMock(name='bot_cred_entry')
-        self.mock_cred_name = 'something'
+        self.mock_props = {
+            'xoxb-token': 'something',
+            'xoxp-token': 'something-else',
+            'team': 'team-test'
+        }
+        self.channel_name = 'LKJEORI'
 
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=False)
+        self.st = SlackTools(props=self.mock_props, main_channel=self.channel_name, use_session=False)
 
     def test_init(self):
         self.mock_webclient.assert_called()
         self.st.bot.auth_test.assert_called()
         self.mock_session.assert_not_called()
         # Test init when use_session is True, but no cookie, xoxc keys provided
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=True)
+        self.st = SlackTools(props=self.mock_props, main_channel=self.channel_name, use_session=True)
         self.mock_session.assert_not_called()
 
         # Test init when use_session is True, but cookie and xoxc keys provided
-        self.mock_cred_entry.d_cookie = 'aoe'
-        self.mock_cred_entry.xoxc_token = 'tasoid'
-        self.st = SlackTools(bot_cred_entry=self.mock_cred_entry, use_session=True)
+        self.mock_props['d-cookie'] = 'aoe'
+        self.mock_props['xoxc-token'] = 'tasoid'
+        self.st = SlackTools(props=self.mock_props, main_channel=self.channel_name, use_session=True)
         self.mock_session.assert_called()
 
     def test_refresh_xoxc_token(self):

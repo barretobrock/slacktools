@@ -15,6 +15,12 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.3] - 2023-12-19
+#### Changed
+ - Revert to props over namespace
+ - Add ephemeral main channel messaging method
+ - Placeholder params are now fully optional
+ 
 ### [2.0.2] - 2023-12-18
 #### Added
  - `BlocksType` to help with type hints

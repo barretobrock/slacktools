@@ -5,13 +5,11 @@ from datetime import (
 )
 from io import BytesIO
 import time
-from types import SimpleNamespace
 from typing import (
     Dict,
     List,
     Optional,
     Tuple,
-    Type,
     Union,
 )
 
@@ -36,12 +34,13 @@ from slacktools.slack_session import SlackSession
 
 class SlackMethods:
 
-    def __init__(self, bot_cred_entry: SimpleNamespace, use_session: bool = False):
+    def __init__(self, props: Dict, main_channel: str, use_session: bool = False):
         # Get team name
-        self.team = bot_cred_entry.team
+        self.team = props['team']
+        self.main_channel = main_channel
         # Grab tokens
-        self.xoxp_token = bot_cred_entry.xoxp_token
-        self.xoxb_token = bot_cred_entry.xoxb_token
+        self.xoxp_token = props['xoxp-token']
+        self.xoxb_token = props['xoxb-token']
         logger.debug('Spinning up user and bot methods...')
         self.user = WebClient(self.xoxp_token)
         self.bot = WebClient(self.xoxb_token)
@@ -53,9 +52,9 @@ class SlackMethods:
         self.session = self.d_cookie = self.xoxc_token = None
         if use_session:
             logger.debug('Param `use_session` set to True - establishing session object.')
-            if all([x in bot_cred_entry.__dict__.keys() for x in ['d_cookie', 'xoxc_token']]):
-                self.d_cookie = bot_cred_entry.d_cookie
-                self.xoxc_token = bot_cred_entry.xoxc_token
+            if all([x in props.keys() for x in ['d-cookie', 'xoxc-token']]):
+                self.d_cookie = props['d-cookie']
+                self.xoxc_token = props['xoxc-token']
                 self.session = SlackSession(self.team, d_cookie=self.d_cookie, xoxc_token=self.xoxc_token)
             else:
                 logger.warning('Session was prevented from instantiating - either d_cookie or xoxc_token '

@@ -22,10 +22,13 @@ class TestSlackBotBase(unittest.TestCase):
 
     def setUp(self) -> None:
         self.mock_webclient = make_patcher(self, 'slacktools.slack_methods.WebClient')
-        self.mock_cred = MagicMock(spec=SimpleNamespace, team='theteam', xoxp_token='xoxp...',
-                                   xoxb_token='xoxb...')
+        self.mock_props = {
+            'team': 'test-team',
+            'xoxp-token': 'xoxp...',
+            'xoxb-token': 'xoxb...'
+        }
 
-        self.sbb = SlackBotBase(bot_cred_entry=self.mock_cred, triggers=['hello'], main_channel='main')
+        self.sbb = SlackBotBase(props=self.mock_props, triggers=['hello'], main_channel='main')
         self.mock_webclient.assert_called()
 
     def test_build_command_output(self):

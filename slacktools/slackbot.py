@@ -3,7 +3,6 @@
 from datetime import datetime
 import re
 import traceback
-from types import SimpleNamespace
 from typing import (
     Callable,
     Dict,
@@ -40,13 +39,13 @@ from slacktools.tools import (
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, bot_cred_entry: SimpleNamespace, triggers: List[str], main_channel: str,
+    def __init__(self, props: Dict, triggers: List[str], main_channel: str,
                  is_post_exceptions: bool = False, debug: bool = False, use_session: bool = False):
         """
         Args:
             triggers: list of str, any specific text trigger to kick off the bot's processing of commands
                 default: None. (i.e., will only trigger on @mentions)
-            bot_cred_entry: SimpleNamespace, contains tokens & other secrets for connecting &
+            props: dict, contains tokens & other secrets for connecting &
                     interacting with Slack
                 required keys:
                     team: str, the Slack workspace name
@@ -59,7 +58,7 @@ class SlackBotBase(SlackTools):
             main_channel: str, the channel to send messages by default
             debug: bool, if True, will provide additional info into exceptions
         """
-        super().__init__(bot_cred_entry=bot_cred_entry, use_session=use_session)
+        super().__init__(props=props, main_channel=main_channel, use_session=use_session)
         self.is_post_exceptions = is_post_exceptions
         self.debug = debug
         # Enforce lowercase triggers (regex will be indifferent to case anyway
@@ -110,7 +109,7 @@ class SlackBotBase(SlackTools):
         return f'*`{pattern}`*: {desc}\n'
 
     @dictify_blocks
-    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> List:
+    def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> BlocksType:
         """Builds bot's description of functions into a giant wall of help text
         Args:
             intro: str, The bot's introduction
@@ -363,7 +362,7 @@ class SlackBotBase(SlackTools):
             return block_text_converter(blocks=last_msg.blocks, callable_list=callable_list)
         return last_msg.text
 
-    def message_main_channel(self, message: str = None, blocks: Optional[List[dict]] = None,
+    def message_main_channel(self, message: str = None, blocks: BlocksType = None,
                              thread_ts: str = None):
         """Wrapper to send message to whole channel"""
         if message is not None:
@@ -372,3 +371,12 @@ class SlackBotBase(SlackTools):
             self.send_message(self.main_channel, message='', blocks=blocks, thread_ts=thread_ts)
         else:
             raise ValueError('No data passed for message.')
+
+    def private_message_main_channel(self, user_id: str, message: str = None, blocks: BlocksType = None,
+                                     thread_ts: str = None):
+        """Wrapper to send message to whole channel"""
+        if message is None:
+            message = 'An important message from the Federation.'
+
+        self.private_channel_message(user_id=user_id, channel=self.main_channel, message=message, blocks=blocks,
+                                     thread_ts=thread_ts)

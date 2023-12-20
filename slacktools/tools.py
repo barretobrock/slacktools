@@ -4,7 +4,6 @@ from pathlib import Path
 from random import randint
 import re
 import string
-from types import SimpleNamespace
 from typing import (
     Callable,
     Dict,
@@ -103,10 +102,10 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedC
 class SlackTools(SlackInputParser, SlackMethods):
     """Tools to make working with Slack API better"""
 
-    def __init__(self, bot_cred_entry: SimpleNamespace, use_session: bool = False):
+    def __init__(self, props: Dict, main_channel: str, use_session: bool = False):
         """
         Args:
-            bot_cred_entry: SecretStore entry, contains tokens & other secrets for connecting &
+            props: dict, contains tokens & other secrets for connecting &
                     interacting with Slack
                 required keys:
                     team: str, the Slack workspace name
@@ -117,7 +116,7 @@ class SlackTools(SlackInputParser, SlackMethods):
                         the realm of common API calls e.g., emoji uploads
             use_session: enable when looking to do things like upload new emojis
         """
-        super().__init__(bot_cred_entry=bot_cred_entry, use_session=use_session)
+        super().__init__(props=props, main_channel=main_channel, use_session=use_session)
 
     def refresh_xoxc_token(self, new_token: str):
         if self.session is not None:

@@ -75,10 +75,12 @@ class ButtonSectionBlock(SectionBlock):
 
 class StaticSelectSectionBlock(SectionBlock):
 
-    def __init__(self, text: str, placeholder: str, option_pairs: List[Tuple[str, str]],
+    def __init__(self, text: str, option_pairs: List[Tuple[str, str]], placeholder: str = None,
                  action_id: str = 'static-select', initial_option_pair: Tuple[str, str] = None):
         text_elem = PlainTextElement(text=text)
-        placeholder_elem = PlainTextElement(text=placeholder)
+        placeholder_elem = None
+        if placeholder is not None:
+            placeholder_elem = PlainTextElement(text=placeholder)
         options = [OptionObject(text=PlainTextElement(txt), value=val) for txt, val in option_pairs]
         initial_option = None
         if initial_option_pair is not None:
@@ -94,11 +96,13 @@ class StaticSelectSectionBlock(SectionBlock):
 
 class MultiStaticSelectSectionBlock(SectionBlock):
 
-    def __init__(self, text: str, placeholder: str, option_pairs: List[Tuple[str, str]],
+    def __init__(self, text: str, option_pairs: List[Tuple[str, str]], placeholder: str = None,
                  action_id: str = 'multi-static-select', initial_option_pairs: List[Tuple[str, str]] = None,
                  max_selected: int = None):
         text_elem = PlainTextElement(text=text)
-        placeholder_elem = PlainTextElement(text=placeholder)
+        placeholder_elem = None
+        if placeholder is not None:
+            placeholder_elem = PlainTextElement(text=placeholder)
         options = [OptionObject(text=PlainTextElement(txt), value=val) for txt, val in option_pairs]
         initial_options = None
         if initial_option_pairs is not None:
@@ -113,9 +117,11 @@ class MultiStaticSelectSectionBlock(SectionBlock):
 
 class UserSelectSectionBlock(SectionBlock):
 
-    def __init__(self, text: str, placeholder: str, action_id: str = 'user-select', initial_user: str = None):
+    def __init__(self, text: str, placeholder: str = None, action_id: str = 'user-select', initial_user: str = None):
         text_elem = PlainTextElement(text=text)
-        placeholder_elem = PlainTextElement(text=placeholder)
+        placeholder_elem = None
+        if placeholder is not None:
+            placeholder_elem = PlainTextElement(text=placeholder)
         select_elem = UserSelectElement(action_id=action_id, initial_user=initial_user,
                                         placeholder=placeholder_elem,)
         super().__init__(
@@ -126,12 +132,14 @@ class UserSelectSectionBlock(SectionBlock):
 
 class MultiUserSelectSectionBlock(SectionBlock):
 
-    def __init__(self, text: str, placeholder: str, action_id: str = 'multi-user-select',
+    def __init__(self, text: str, placeholder: str = None, action_id: str = 'multi-user-select',
                  initial_users: List[str] = None):
         text_elem = PlainTextElement(text=text)
-        placeholder_elem = PlainTextElement(text=placeholder)
+        placeholder_elem = None
+        if placeholder is not None:
+            placeholder_elem = PlainTextElement(text=placeholder)
         select_elem = MultiUserSelectElement(action_id=action_id, initial_users=initial_users,
-                                             placeholder=placeholder_elem,)
+                                             placeholder=placeholder_elem)
         super().__init__(
             text_elem=text_elem,
             accessory=select_elem

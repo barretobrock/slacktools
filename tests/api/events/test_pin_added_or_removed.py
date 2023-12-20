@@ -27,3 +27,7 @@ class TestPinAddedOrRemoved(unittest.TestCase):
         pin_obj = PinRemoved(event_dict=pin_event)
         self.assertEqual(bid, pin_obj.item.message.bot_id)
         self.assertIsNone(pin_obj.item.message.username)
+
+
+if __name__ == '__main__':
+    unittest.main()

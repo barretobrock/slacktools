@@ -31,10 +31,11 @@ class TestSlackMethods(unittest.TestCase):
             'user_id': self.mock_user_id
         }
 
-        self.mock_botcreds = MagicMock()
-        self.mock_botcreds.team = self.team_name
-        self.mock_botcreds.xoxp_token = self.mock_xoxp_token
-        self.mock_botcreds.xoxb_token = self.mock_xoxb_token
+        self.mock_props = {
+            'team': self.team_name,
+            'xoxp-token': self.mock_xoxp_token,
+            'xoxb-token': self.mock_xoxb_token
+        }
 
         self.mock_webclient.side_effect = [
             self.mock_user_webclient,
@@ -43,7 +44,8 @@ class TestSlackMethods(unittest.TestCase):
         # Call
         # -------------------------------------------------------------------------------------------------------------
         self.smethod = SlackMethods(
-            bot_cred_entry=self.mock_botcreds,
+            props=self.mock_props,
+            main_channel='HELIAER',
             use_session=False
         )
 
