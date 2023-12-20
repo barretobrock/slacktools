@@ -33,6 +33,8 @@ class Message(BaseApiObject):
     match_pattern: str
 
     def __init__(self, event_dict: Dict = None, **kwargs):
+        self.blocks = None
+        self.subtype = None
         super().__init__(event_dict, **kwargs)
         self.raw_text = self.text
         self.thread_ts = self.ts
