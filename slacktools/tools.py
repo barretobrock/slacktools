@@ -49,41 +49,48 @@ class CommandDict(TypedDict):
     commands: List[Dict[str, CommandItemDict]]
 
 
+LOG = logger
+
+
+def parse_command(grp: str, regex: str, details: CommandItemDict, obj=None) -> ProcessedCommandItemType:
+    item = ProcessedCommandItemType(
+        pattern=regex,
+        tags=details.get('tags', []),
+        group=grp,
+        desc=details.get('desc')
+    )
+    # Determine response
+    if 'response_cmd' in details.keys():
+        callable_dict = details.get('response_cmd')  # type: ResponseItemType
+        callable_name = callable_dict.get('callable')  # type: str
+        callable_args = callable_dict.get('args', [])  # type: List[str]
+
+        opt_flags = details.get('flags')
+        opt_examples = details.get('examples')
+        if opt_flags is not None:
+            LOG.debug(f'Adding {len(opt_flags)} flag(s) to item')
+            item['flags'] = opt_flags
+        if opt_examples is not None:
+            LOG.debug(f'Adding {len(opt_examples)} example(s) to item')
+            item['examples'] = opt_examples
+        if callable_args is None:
+            callable_args = []
+        LOG.debug(f'Searching for callable "{callable_name}" in object...')
+        callable_obj = getattr(obj, callable_name, None)  # type: callable
+        if callable_obj is not None:
+            LOG.debug(f'Binding callable and {len(callable_args)} args to response')
+            item['response'] = [callable_obj] + callable_args
+        else:
+            LOG.warning(f'Was not able to bind a method to this command: {callable_name}.')
+    elif 'response_txt' in details.keys():
+        LOG.debug('Binding text to response')
+        item['response'] = details.get('response_txt')
+    return item
+
+
 def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedCommandItemType]:
     """Reads in commands from a YAML file and builds out their structure, searching for named attributes
     as callables along the way"""
-    def parse_command(grp: str, regex: str, details: CommandItemDict) -> ProcessedCommandItemType:
-        item = ProcessedCommandItemType(
-            pattern=regex,
-            tags=details.get('tags', []),
-            group=grp,
-            desc=details.get('desc')
-        )
-        # Determine response
-        if 'response_cmd' in details.keys():
-            callable_dict = details.get('response_cmd')  # type: ResponseItemType
-            callable_name = callable_dict.get('callable')  # type: str
-            callable_args = callable_dict.get('args', [])  # type: List[str]
-
-            opt_flags = details.get('flags')
-            opt_examples = details.get('examples')
-            if opt_flags is not None:
-                log.debug(f'Adding {len(opt_flags)} flag(s) to item')
-                item['flags'] = opt_flags
-            if opt_examples is not None:
-                log.debug(f'Adding {len(opt_examples)} example(s) to item')
-                item['examples'] = opt_examples
-            if callable_args is None:
-                callable_args = []
-            log.debug(f'Searching for callable "{callable_name}" in object...')
-            callable_obj = getattr(bot_obj, callable_name, None)  # type: callable
-            if callable_obj is not None:
-                log.debug(f'Binding callable and {len(callable_args)} args to response')
-                item['response'] = [callable_obj] + callable_args
-        elif 'response_txt' in details.keys():
-            log.debug('Binding text to response')
-            item['response'] = details.get('response_txt')
-        return item
 
     with cmd_yaml_path.open() as f:
         cmd_dict = yaml.safe_load(f)
@@ -94,7 +101,7 @@ def build_commands(bot_obj, cmd_yaml_path: Path, log: logger) -> List[ProcessedC
         log.debug(f'Working on group {group}...')
         for cmd_regex, cmd_details in group_dict.items():
             log.debug(f'Working on command: {cmd_regex}')
-            processed_cmds.append(parse_command(grp=group, regex=cmd_regex, details=cmd_details))
+            processed_cmds.append(parse_command(grp=group, regex=cmd_regex, details=cmd_details, obj=bot_obj))
 
     return processed_cmds
 

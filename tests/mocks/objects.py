@@ -2,4 +2,4 @@
 
 class TestBotObj:
     def __getattr__(self, item):
-        return 'item'
+        return f'{item}'

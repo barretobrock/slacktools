@@ -238,21 +238,22 @@ class SlackBotBase(SlackTools):
                         self.send_message(message_obj.channel_id, f"Exception occurred: \n```{exception_msg}```",
                                           thread_ts=message_obj.thread_ts)
 
-    def handle_command(self, message_obj: Message):
+    def handle_command(self, obj: Union[Message, SlashCommandEvent]):
         """Handles a bot command if it's known"""
         response = None
-        logger.debug(f'Incoming message: {message_obj.cleaned_message}')
+        is_slash = isinstance(obj, SlashCommandEvent)
+        logger.debug(f'Incoming message: {obj.cleaned_message}')
 
         is_matched = False
         for resp_dict in self.commands:
             regex = resp_dict.get('pattern')
-            match = re.match(regex, message_obj.cleaned_message)
+            match = re.match(regex, obj.cleaned_message)
             if match is not None:
                 logger.debug(f'Matched on pattern: {regex}')
                 # We've matched on a command
                 resp = resp_dict['response']
                 # Add the regex pattern into the event dict
-                message_obj.take_match_pattern(regex)
+                obj.take_match_pattern(regex)
                 if isinstance(resp, list):
                     if len(resp) == 0:
                         # Empty response placeholder... Maybe we'll use this for certain commands.
@@ -269,7 +270,7 @@ class SlackBotBase(SlackTools):
                         resp_list = resp.copy()
                         # Examine list, replace any known strings ('message', 'channel', etc.)
                         #   with event context variables
-                        for k, v in message_obj.__dict__.items():
+                        for k, v in obj.__dict__.items():
                             if k in resp_list:
                                 resp_list[resp_list.index(k)] = v
                         # Function with args; sometimes response can be None
@@ -286,22 +287,34 @@ class SlackBotBase(SlackTools):
                 logger.debug(f'Response is of type: {type(response)}')
                 break
 
-        if message_obj.cleaned_message != '' and not is_matched:
-            response = f"I didn\'t understand this: *`{message_obj.cleaned_message}`*\n" \
+        if obj.cleaned_message != '' and not is_matched:
+            response = f"I didn\'t understand this: *`{obj.cleaned_message}`*\n" \
                        f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
                        f"to get a list of my commands."
+        if response is None:
+            return
 
-        if response is not None:
-            if isinstance(response, str):
-                try:
-                    response = response.format(**message_obj.__dict__)
-                except KeyError:
-                    # Response likely has some curly braces in it that disrupt str.format().
-                    # Pass string without formatting
-                    pass
-                self.send_message(message_obj.channel_id, response, thread_ts=message_obj.thread_ts)
-            elif isinstance(response, list):
-                self.send_message(message_obj.channel_id, '', blocks=response, thread_ts=message_obj.thread_ts)
+        params = {
+            'channel': obj.channel_id,
+        }
+        if isinstance(response, str):
+            try:
+                response = response.format(**obj.__dict__)
+            except KeyError:
+                # Response likely has some curly braces in it that disrupt str.format().
+                # Pass string without formatting
+                pass
+            params.update({'message': response})
+        elif isinstance(response, list):
+            # Likely blocks response
+            params.update({'message': '', 'blocks': response})
+        if is_slash and obj.thread_ts is None:
+            # Received as slash command, so post as ephemeral
+            params.update({'user_id': obj.user_id})
+            self.private_channel_message(**params)
+        else:
+            params.update({'thread_ts': obj.thread_ts})
+            self.send_message(**params)
 
     @staticmethod
     def call_command(cmd: Callable, *args, **kwargs):
@@ -316,15 +329,9 @@ class SlackBotBase(SlackTools):
         determines how the command should be handled
         """
         event_data = SlashCommandEvent(event_dict=event_dict)
-        logger.debug(f'Parsed slash command from {event_data.user_name}: {event_data.full_message}')
+        logger.debug(f'Parsed slash command from {event_data.user_name}: {event_data.cleaned_command}')
 
-        self.handle_command(Message(
-            type='message',
-            channel=event_data.channel_id,
-            user=event_data.user_id,
-            text=event_data.full_message,
-            ts=f'{datetime.now().timestamp()}',
-        ))
+        self.handle_command(event_data)
 
     @staticmethod
     def get_time_elapsed(st_dt: datetime) -> str:

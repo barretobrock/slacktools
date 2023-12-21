@@ -70,7 +70,7 @@ class ButtonSectionBlock(SectionBlock):
     def __init__(self, text: Union[str, List[str]], button_text: str, value: str, action_id: str = 'button_action',
                  joiner: str = '\n'):
         accessory = ButtonElement(text=button_text, action_id=action_id, value=value)
-        super().__init__(text_elem=PlainTextElement(text=text, joiner=joiner), accessory=accessory)
+        super().__init__(text_elem=MarkdownTextElement(text=text, joiner=joiner), accessory=accessory)
 
 
 class StaticSelectSectionBlock(SectionBlock):

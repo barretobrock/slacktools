@@ -15,6 +15,14 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.4] - 2023-12-21
+#### Added
+ - Tests for handle_commands for both `Message` and `Slash` objects
+#### Changed
+ - When slash commands are used, try to respond in ephemeral, noting that we can't use slash in threads.
+#### Fixed
+ - `ButtonTextElement`s now render with markdown instead of plaintext
+ 
 ### [2.0.3] - 2023-12-19
 #### Changed
  - Revert to props over namespace

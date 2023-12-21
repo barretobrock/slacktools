@@ -36,7 +36,7 @@ class TestSlash(unittest.TestCase):
             self.assertEqual(raw_cmd, slash.raw_command)
             self.assertEqual(clean_cmd, slash.cleaned_command)
             self.assertEqual(txt, slash.text)
-            self.assertEqual(full, slash.full_message)
+            self.assertEqual(full, slash.cleaned_message)
 
 
 if __name__ == '__main__':

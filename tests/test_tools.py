@@ -31,6 +31,13 @@ class TestBuildCommands(unittest.TestCase):
     def test_build_command(self):
         """Tests build_command_output"""
         self.assertGreaterEqual(len(self.cmds), 1)
+        for cmd in self.cmds:
+            # Ensure all these necessary items are included.
+            self.assertIn('pattern', cmd.keys())
+            self.assertIn('tags', cmd.keys())
+            self.assertIn('group', cmd.keys())
+            self.assertIn('desc', cmd.keys())
+            self.assertIn('response', cmd.keys())
 
 
 class TestSlackTools(unittest.TestCase):
