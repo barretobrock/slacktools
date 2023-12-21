@@ -38,7 +38,7 @@ class TestSlackBotBase(unittest.TestCase):
             'xoxb-token': 'xoxb...'
         }
 
-        self.sbb = SlackBotBase(props=self.mock_props, triggers=['hello'], main_channel='main')
+        self.sbb = SlackBotBase(props=self.mock_props, triggers=['hello'], main_channel='main', admins=['asdl;k'])
         self.mock_webclient_bot.auth_test.assert_called()
 
     def test_build_command_output(self):

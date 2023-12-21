@@ -39,7 +39,7 @@ from slacktools.tools import (
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
-    def __init__(self, props: Dict, triggers: List[str], main_channel: str,
+    def __init__(self, props: Dict, triggers: List[str], main_channel: str, admins: List[str],
                  is_post_exceptions: bool = False, debug: bool = False, use_session: bool = False):
         """
         Args:
@@ -69,6 +69,7 @@ class SlackBotBase(SlackTools):
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
         self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
         self.main_channel = main_channel
+        self.admins = admins
 
         self.commands = []  # type: List[ProcessedCommandItemType]
 
@@ -243,6 +244,7 @@ class SlackBotBase(SlackTools):
         response = None
         is_slash = isinstance(obj, SlashCommandEvent)
         logger.debug(f'Incoming message: {obj.cleaned_message}')
+        uid = obj.user_id if is_slash else obj.user
 
         is_matched = False
         for resp_dict in self.commands:
@@ -250,6 +252,11 @@ class SlackBotBase(SlackTools):
             match = re.match(regex, obj.cleaned_message)
             if match is not None:
                 logger.debug(f'Matched on pattern: {regex}')
+                group = resp_dict.get('group', 'default')
+                if group == 'admin':
+                    if obj.user_id not in self.admins:
+                        logger.info(f'Blocked user {uid} from using command.')
+                        break
                 # We've matched on a command
                 resp = resp_dict['response']
                 # Add the regex pattern into the event dict
@@ -257,7 +264,7 @@ class SlackBotBase(SlackTools):
                 if isinstance(resp, list):
                     if len(resp) == 0:
                         # Empty response placeholder... Maybe we'll use this for certain commands.
-                        logger.debug('Empty list response')
+                        logger.warning('Empty list response')
                         response = None
                     elif isinstance(resp[0], dict):
                         # Response is a JSON blob for handling in Block Kit.
