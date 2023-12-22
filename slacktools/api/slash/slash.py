@@ -21,6 +21,10 @@ class SlashCommandEvent(BaseApiObject):
     match_pattern: str
     is_in_thread: bool = False
     thread_ts: str = None
+    channel: str
+    user: str
+    message: str
+    raw_message: str
 
     def __init__(self, event_dict: Dict, **kwargs):
         super().__init__(event_dict, **kwargs)
@@ -28,6 +32,10 @@ class SlashCommandEvent(BaseApiObject):
         self.cleaned_command = self.command.replace('/', '').replace('-', ' ')
         # Some commands can be without prompts / additional messages
         self.cleaned_message = f'{self.cleaned_command} {self.text}' if self.text != '' else self.cleaned_command
+        self.channel = self.channel_id
+        self.user = self.user_id
+        self.message = self.cleaned_message
+        self.raw_message = self.raw_command
 
     def take_match_pattern(self, match_pattern: str):
         self.match_pattern = match_pattern
