@@ -22,7 +22,7 @@ class DispatchActionConfigElement(BaseElement):
 
 class PlaintTextInputElement(BaseElement):
     """https://api.slack.com/reference/block-kit/block-elements#input"""
-    type: str = 'plain_text_element'
+    type: str = 'plain_text_input'
     action_id: str = 'plaintext-input-action'
     initial_value: str
     multiline: bool = False
