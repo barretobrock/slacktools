@@ -200,7 +200,7 @@ class SlackBotBase(SlackTools):
             return trigger, message_txt, raw_message
         return None, None, None
 
-    def parse_message_event(self, resp_dict: Dict):
+    def parse_message_event(self, resp_dict: Dict, users: List = None):
         """Takes in an Events API message-triggered event dict and determines
          if a command was issued to the bot"""
         event_dict = resp_dict['event']
@@ -222,7 +222,7 @@ class SlackBotBase(SlackTools):
 
         if is_handle:
             try:
-                self.handle_command(message_obj)
+                self.handle_command(message_obj, users=users)
             except Exception as e:
                 exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                 logger.error(f'Exception occurred: {exception_msg}', e)
@@ -239,12 +239,26 @@ class SlackBotBase(SlackTools):
                         self.send_message(message_obj.channel_id, f"Exception occurred: \n```{exception_msg}```",
                                           thread_ts=message_obj.thread_ts)
 
-    def handle_command(self, obj: Union[Message, SlashCommandEvent]):
+    @staticmethod
+    def check_user_for_bot_timeout(users: List, uid: str) -> bool:
+        logger.debug('Begin permissions check...')
+        user_obj = next((u for u in users if u.slack_user_hash == uid), None)
+        if user_obj is None:
+            logger.info('User not in system. Bypassing check.')
+        elif user_obj.is_in_bot_timeout:
+            logger.info(f'User with name {user_obj.display_name} is in bot timeout. Ignoring all requests.')
+            return True
+        return False
+
+    def handle_command(self, obj: Union[Message, SlashCommandEvent], users: List = None):
         """Handles a bot command if it's known"""
         response = None
         is_slash = isinstance(obj, SlashCommandEvent)
         logger.debug(f'Incoming message: {obj.cleaned_message}')
         uid = obj.user_id if is_slash else obj.user
+
+        if users is not None:
+            self.check_user_for_bot_timeout(users=users, uid=uid)
 
         is_matched = False
         for resp_dict in self.commands:
@@ -331,14 +345,14 @@ class SlackBotBase(SlackTools):
         """
         return cmd(*args, **kwargs)
 
-    def parse_slash_command(self, event_dict: Dict):
+    def parse_slash_command(self, event_dict: Dict, users: List):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
         """
         event_data = SlashCommandEvent(event_dict=event_dict)
         logger.debug(f'Parsed slash command from {event_data.user_name}: {event_data.cleaned_command}')
 
-        self.handle_command(event_data)
+        self.handle_command(event_data, users=users)
 
     @staticmethod
     def get_time_elapsed(st_dt: datetime) -> str:
