@@ -345,7 +345,7 @@ class SlackBotBase(SlackTools):
         """
         return cmd(*args, **kwargs)
 
-    def parse_slash_command(self, event_dict: Dict, users: List):
+    def parse_slash_command(self, event_dict: Dict, users: List = None):
         """Takes in info relating to a slash command that was triggered and
         determines how the command should be handled
         """
