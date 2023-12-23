@@ -22,7 +22,9 @@ from slack_sdk.web.slack_response import SlackResponse
 from slacktools.api.web.conversations import (
     ConversationHistory,
     ConversationMembers,
+    ConversationReply,
     Message,
+    ThreadMessage,
 )
 from slacktools.api.web.users import UserInfo
 from slacktools.block_kit.base import (
@@ -222,6 +224,16 @@ class SlackMethods:
 
         return channel_history
 
+    def get_thread_history(self, channel: str, ts: str, limit: int = 1000, latest: str = None,
+                           is_raise: bool = False) -> ConversationReply:
+        """Collect channel history"""
+        logger.debug(f'Getting thread history in channel {channel} for thread at timestamp {ts}.')
+        resp = self.bot.conversations_replies(channel=channel, ts=ts, limit=limit, latest=latest)
+        self._check_for_exception(resp, is_raise=is_raise)
+        convo_replies = ConversationReply(resp.data)
+
+        return convo_replies
+
     @staticmethod
     def create_channel(channel_name: str, is_private: bool = False):
         """Creates a public/private channel"""
@@ -334,4 +346,13 @@ class SlackMethods:
         if channel_history.messages is not None:
             if len(channel_history.messages) > 0:
                 return channel_history.messages[0]
+        return None
+
+    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str) -> Optional[ThreadMessage]:
+        """Gets the previous message from the channel"""
+        logger.debug(f'Getting previous message in channel {channel}')
+        convo_reply = self.get_thread_history(channel=channel, ts=timestamp, limit=1, latest=thread_ts, is_raise=False)
+        if convo_reply.messages is not None:
+            if len(convo_reply.messages) > 0:
+                return convo_reply.messages[0]
         return None

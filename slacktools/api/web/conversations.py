@@ -58,6 +58,29 @@ class Message(BaseApiObject):
         return f'<{self.__class__.__name__}(ts={self.ts})>'
 
 
+class ThreadMessage(Message):
+    thread_ts: str
+    parent_user_is: str
+
+    def __init__(self, resp_dict: Dict = None, **kwargs):
+        super().__init__(resp_dict, **kwargs)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}(ts={self.ts})>'
+
+
+class ConversationReply(BaseApiObject):
+    messages: List[ThreadMessage]
+    has_more: bool
+    response_metadata: ResponseMetadata
+
+    def __init__(self, resp_dict: Dict = None, **kwargs):
+        super().__init__(resp_dict, **kwargs)
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}(messages={self.messages})>'
+
+
 class ConversationHistory(BaseApiObject):
     messages: List[Message]
     has_more: bool
