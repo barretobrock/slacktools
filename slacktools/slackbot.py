@@ -258,7 +258,8 @@ class SlackBotBase(SlackTools):
         uid = obj.user_id if is_slash else obj.user
 
         if users is not None:
-            self.check_user_for_bot_timeout(users=users, uid=uid)
+            if self.check_user_for_bot_timeout(users=users, uid=uid):
+                return None
 
         is_matched = False
         for resp_dict in self.commands:
