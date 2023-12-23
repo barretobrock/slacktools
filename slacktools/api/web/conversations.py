@@ -37,12 +37,19 @@ class MessageAttachment(BaseApiObject):
         return f'<{self.__class__.__name__}(service_name={self.service_name})>'
 
 
+class Reaction(BaseApiObject):
+    name: str
+    users: List[str]
+    count: int
+
+
 class Message(BaseApiObject):
     type: str
     user: str
     text: str
     ts: str
     attachments: Optional[List[MessageAttachment]]
+    reactions: Optional[List[Reaction]]
 
     def __init__(self, resp_dict: Dict = None, **kwargs):
         super().__init__(resp_dict, **kwargs)
