@@ -15,6 +15,16 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.6] - 2023-12-23
+#### Added
+ - Allow `is_in_bot_timeout` check on incoming messages, commands and actions
+ - Channel event classes
+#### Changed
+#### Deprecated
+#### Removed
+#### Fixed
+#### Security
+ 
 ### [2.0.5] - 2023-12-22
 #### Added
  - `BaseApiObject`s now also have `asdict` to help with conversion where needed (e.g., blocks replacement)
