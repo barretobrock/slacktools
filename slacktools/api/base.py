@@ -18,6 +18,25 @@ class BaseApiObject:
             else:
                 self.__setattr__(k, v)
 
+    def asdict(self) -> Dict:
+        resp_dict = {}
+        for k, v in vars(self).items():
+            if k.startswith('_'):
+                continue
+            if isinstance(v, BaseApiObject):
+                resp_dict[k] = v.asdict()
+            elif isinstance(v, list):
+                items = []
+                for item in v:
+                    if isinstance(item, BaseApiObject):
+                        items.append(item.asdict())
+                    else:
+                        items.append(item)
+                resp_dict[k] = items
+            else:
+                resp_dict[k] = v
+        return resp_dict
+
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}()>'
 

@@ -15,6 +15,12 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.5] - 2023-12-22
+#### Added
+ - `BaseApiObject`s now also have `asdict` to help with conversion where needed (e.g., blocks replacement)
+#### Fixed
+ - [GH-12](../../issues/12) - Slash commands with args should now replace filler args
+ 
 ### [2.0.4] - 2023-12-21
 #### Added
  - Tests for handle_commands for both `Message` and `Slash` objects
