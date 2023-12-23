@@ -39,6 +39,12 @@ class BaseElement:
                 resp_dict[k] = v
         return resp_dict
 
+    def __getattr__(self, item):
+        # This helps to avoid getting AttributeError on values.
+        #   Instead they'll just return None, which is the pattern
+        #   we want to work with.
+        return None
+
     @staticmethod
     def length_assertion(value: Union[str, List], key: str, max_len: int):
         value_len = len(value)

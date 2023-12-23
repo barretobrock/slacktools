@@ -37,6 +37,12 @@ class BaseApiObject:
                 resp_dict[k] = v
         return resp_dict
 
+    def __getattr__(self, item):
+        # This helps to avoid getting AttributeError on values.
+        #   Instead they'll just return None, which is the pattern
+        #   we want to work with.
+        return None
+
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__}()>'
 
