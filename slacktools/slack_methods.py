@@ -350,15 +350,14 @@ class SlackMethods:
                 return channel_history.messages[0]
         return None
 
-    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str,
-                                   is_none_when_only_one: bool = True) -> Optional[Tuple[ThreadMessage, bool]]:
+    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str) -> Optional[Tuple[ThreadMessage, bool]]:
         """Gets the previous message from the channel
 
         Returns the ThreadMessage object for the previous item and then boolean indicating if
             it was the only thing in the thread (other than the parent message)
         """
         logger.debug(f'Getting previous message in channel {channel} for thread at {timestamp}')
-        convo_reply = self.get_thread_history(channel=channel, ts=timestamp, limit=5, latest=thread_ts, is_raise=False)
+        convo_reply = self.get_thread_history(channel=channel, ts=thread_ts, limit=5, latest=timestamp, is_raise=False)
         if convo_reply.messages is not None and len(convo_reply.messages) > 0:
             msgs = convo_reply.messages
             if len(msgs) == 1:
