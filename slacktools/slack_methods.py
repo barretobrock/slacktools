@@ -365,5 +365,5 @@ class SlackMethods:
                 return msgs[0], True
             elif len(msgs) > 1:
                 # Return the latest of many
-                return msgs[0], False
+                return msgs[-1], False
         return None
