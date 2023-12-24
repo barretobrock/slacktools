@@ -14,6 +14,7 @@ from typing import (
 
 from dateutil import relativedelta
 from loguru import logger
+import numpy as np
 
 from slacktools.api.events.message import Message
 from slacktools.api.slash.slash import SlashCommandEvent
@@ -269,8 +270,9 @@ class SlackBotBase(SlackTools):
                 logger.debug(f'Matched on pattern: {regex}')
                 group = resp_dict.get('group', 'default')
                 if group == 'admin':
-                    if obj.user_id not in self.admins:
+                    if uid not in self.admins:
                         logger.info(f'Blocked user {uid} from using command.')
+                        response = ':ah-ah-ah:' * np.random.randint(1, 50)
                         break
                 # We've matched on a command
                 resp = resp_dict['response']
