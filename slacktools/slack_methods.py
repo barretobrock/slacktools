@@ -348,15 +348,17 @@ class SlackMethods:
                 return channel_history.messages[0]
         return None
 
-    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str) -> Optional[ThreadMessage]:
+    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str,
+                                   is_none_when_only_one: bool = True) -> Optional[ThreadMessage]:
         """Gets the previous message from the channel"""
         logger.debug(f'Getting previous message in channel {channel} for thread at {timestamp}')
         convo_reply = self.get_thread_history(channel=channel, ts=timestamp, limit=5, latest=thread_ts, is_raise=False)
-        if convo_reply.messages is not None:
-            if 0 < len(convo_reply.messages) < 2:
+        if convo_reply.messages is not None and len(convo_reply.messages) > 0:
+            msgs = convo_reply.messages
+            if len(msgs) == 1:
                 # Only 1 reply, which is probably the command. Return None to signal to try getting the parent instead
-                return None
-            elif len(convo_reply.messages) > 1:
+                return None if is_none_when_only_one else msgs[0]
+            elif len(msgs) > 1:
                 # Return the latest of many
-                return convo_reply.messages[0]
+                return msgs[0]
         return None
