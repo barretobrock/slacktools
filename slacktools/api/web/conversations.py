@@ -60,7 +60,7 @@ class Message(BaseApiObject):
 
 class ThreadMessage(Message):
     thread_ts: str
-    parent_user_is: str
+    parent_user_id: str
 
     def __init__(self, resp_dict: Dict = None, **kwargs):
         super().__init__(resp_dict, **kwargs)
