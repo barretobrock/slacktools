@@ -214,11 +214,11 @@ class SlackMethods:
             resp = self.user.chat_delete(channel=channel, ts=ts)
         self._check_for_exception(resp, is_raise=True)
 
-    def get_channel_history(self, channel: str, limit: int = 1000, latest: str = None,
+    def get_channel_history(self, channel: str, limit: int = 1000, latest: str = None, inclusive: bool = False,
                             is_raise: bool = False) -> ConversationHistory:
         """Collect channel history"""
         logger.debug(f'Getting channel history for channel {channel}.')
-        resp = self.bot.conversations_history(channel=channel, limit=limit, latest=latest)
+        resp = self.bot.conversations_history(channel=channel, limit=limit, latest=latest, inclusive=inclusive)
         self._check_for_exception(resp, is_raise=is_raise)
         channel_history = ConversationHistory(resp.data)
 
@@ -339,10 +339,12 @@ class SlackMethods:
         self._check_for_exception(resp, is_raise=True)
         return resp['emoji']
 
-    def get_previous_msg_in_channel(self, channel: str, timestamp: str = None) -> Optional[Message]:
+    def get_previous_msg_in_channel(self, channel: str, timestamp: str = None,
+                                    inclusive: bool = False) -> Optional[Message]:
         """Gets the previous message from the channel"""
         logger.debug(f'Getting previous message in channel {channel}')
-        channel_history = self.get_channel_history(channel=channel, limit=10, latest=timestamp, is_raise=False)
+        channel_history = self.get_channel_history(channel=channel, limit=10, latest=timestamp, is_raise=False,
+                                                   inclusive=inclusive)
         if channel_history.messages is not None:
             if len(channel_history.messages) > 0:
                 return channel_history.messages[0]
