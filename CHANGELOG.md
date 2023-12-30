@@ -15,6 +15,13 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.7] - 2023-12-25
+#### Added
+ - [GH-13](../../issues/13) - Add tiny text generation support
+ - Add initial action form support
+#### Fixed
+ - [GH-14](../../issues/14) - Undo ephemeral default on slash commands
+ 
 ### [2.0.6] - 2023-12-23
 #### Added
  - Allow `is_in_bot_timeout` check on incoming messages, commands and actions
