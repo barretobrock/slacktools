@@ -16,6 +16,11 @@ from dateutil import relativedelta
 from loguru import logger
 import numpy as np
 
+from slacktools.api.actions import (
+    Action,
+    ActionForm,
+    BlockAction,
+)
 from slacktools.api.events.message import Message
 from slacktools.api.slash.slash import SlashCommandEvent
 from slacktools.block_kit.base import (
@@ -87,6 +92,7 @@ class SlackBotBase(SlackTools):
         #   This was mainly built as a response to occasional duplicate responses
         #   due to delay in Slack receiving a response. I've yet to figure out how to improve response time
         self.message_events = []
+        self.forms = {}  # type: Dict[str, ActionForm]
 
     def update_commands(self, commands: List[ProcessedCommandItemType]):
         """Updates the dictionary of commands"""
@@ -240,6 +246,27 @@ class SlackBotBase(SlackTools):
                         self.send_message(message_obj.channel_id, f"Exception occurred: \n```{exception_msg}```",
                                           thread_ts=message_obj.thread_ts)
 
+    def parse_action_form(self, block_action: BlockAction) -> Tuple[bool, Optional[Union[ActionForm, Action]]]:
+        """Handles organizing an incoming event into a structure that's easier to wield across the bots/forms"""
+
+        action_id = block_action.get_action_id()
+        logger.debug(f'Receiving action: {action_id} from user {block_action.user.id}')
+
+        # Determine if it's a part of a form
+        matched_form_key = next((f_key for f_key, form in self.forms.items() if action_id.startswith(f_key)), None)
+        if matched_form_key is not None:
+            # Matched to form. Process the action and check for is_complete.
+            self.forms[matched_form_key].add_resp_item(resp_item=block_action.action)
+            if not self.forms[matched_form_key].is_complete:
+                # Pop form out of dict
+                return False, None
+            form = self.forms.pop(matched_form_key)
+            return True, form
+        else:
+            # Action form is not registered
+            logger.warning(f'Unregistered action form: {action_id}. Cannot proceed')
+            return False, None
+
     @staticmethod
     def check_user_for_bot_timeout(users_dict: Dict, uid: str) -> bool:
         logger.debug('Begin permissions check...')
@@ -320,6 +347,7 @@ class SlackBotBase(SlackTools):
 
         params = {
             'channel': obj.channel_id,
+            'thread_ts': obj.thread_ts
         }
         if isinstance(response, str):
             try:
@@ -332,13 +360,7 @@ class SlackBotBase(SlackTools):
         elif isinstance(response, list):
             # Likely blocks response
             params.update({'message': '', 'blocks': response})
-        if is_slash and obj.thread_ts is None:
-            # Received as slash command, so post as ephemeral
-            params.update({'user_id': obj.user_id})
-            self.private_channel_message(**params)
-        else:
-            params.update({'thread_ts': obj.thread_ts})
-            self.send_message(**params)
+        self.send_message(**params)
 
     @staticmethod
     def call_command(cmd: Callable, *args, **kwargs):
