@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 import re
 import traceback
 from typing import (
@@ -73,7 +76,7 @@ class SlackBotBase(SlackTools):
 
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
-        self.MENTION_REGEX = r'^(<@(|[WU].+?)>{})([.\s\S ]*)'.format(trigger_formatted)
+        self.MENTION_REGEX = r'^(<@{}>{})([.\s\S ]*)'.format(self.user_id, trigger_formatted)
         self.main_channel = main_channel
         self.admins = admins
 
@@ -380,10 +383,7 @@ class SlackBotBase(SlackTools):
         self.handle_command(event_data, users_dict=users_dict)
 
     @staticmethod
-    def get_time_elapsed(st_dt: datetime) -> str:
-        """Gets elapsed time between two datetimes"""
-        result = relativedelta.relativedelta(datetime.now(), st_dt)
-
+    def _relativedelta_to_human(reldelta: relativedelta.relativedelta) -> str:
         attrs = {
             'years': 'y',
             'months': 'mo',
@@ -395,11 +395,27 @@ class SlackBotBase(SlackTools):
 
         result_list = []
         for attr in attrs.keys():
-            attr_val = getattr(result, attr)
+            attr_val = getattr(reldelta, attr)
             if attr_val is not None:
                 if attr_val > 0:
                     result_list.append('{:d}{}'.format(attr_val, attrs[attr]))
         return ' '.join(result_list)
+
+    @classmethod
+    def timedelta_to_human(cls, tdelta: timedelta) -> str:
+        """Converts timedelta to a human-readable string"""
+        # Convert to relativedelta
+        rdelta = relativedelta.relativedelta(seconds=int(tdelta.total_seconds()), microseconds=tdelta.microseconds)
+        return cls._relativedelta_to_human(reldelta=rdelta)
+
+    @classmethod
+    def get_time_elapsed(cls, st_dt: datetime, end_dt: datetime = None) -> str:
+        """Gets elapsed time between two datetimes"""
+        if end_dt is None:
+            end_dt = datetime.now()
+        result = relativedelta.relativedelta(end_dt, st_dt)
+
+        return cls._relativedelta_to_human(result)
 
     def convert_last_message(self, channel: str, timestamp: str, callable_list: List[Union[Callable, str]]) -> \
             Union[str, List[Dict]]:

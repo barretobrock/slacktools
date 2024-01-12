@@ -177,7 +177,7 @@ class SlackMethods:
                 new_blocks.append(block)
         return new_blocks
 
-    def send_message(self, channel: str, message: str = None, ret_ts: bool = False, ret_all: bool = False,
+    def send_message(self, channel: str, message: str = 'boop', ret_ts: bool = False, ret_all: bool = False,
                      blocks: BlocksType = None, **kwargs) -> Optional[Union[str, SlackResponse]]:
         """Sends a message to the specific channel"""
         logger.debug(f'Sending channel message in {channel}.')
