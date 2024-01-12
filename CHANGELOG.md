@@ -21,6 +21,8 @@ __BEGIN-CHANGELOG__
  - Add initial action form support
 #### Fixed
  - [GH-14](../../issues/14) - Undo ephemeral default on slash commands
+ - [GH-15](../../issues/15) - Bot mention regex was greedy
+ - Bypass warning on `text` param being empty with sending blocks notis
  
 ### [2.0.6] - 2023-12-23
 #### Added
