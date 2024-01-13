@@ -245,7 +245,7 @@ class SlackTools(SlackInputParser, SlackMethods):
         return done_phrase
 
     @staticmethod
-    def tiny_text_gen(msg: str, text_type: str = 'subscript') -> str:
+    def tiny_text_gen(msg: str, text_type: str = 'supscript') -> str:
         """Takes a message and converts what characters it can into
         one of superscript, subscript or small_caps"""
         alphanum_mapper = {
@@ -254,6 +254,8 @@ class SlackTools(SlackInputParser, SlackMethods):
             'supscript': 'ᵃᵇᶜᵈᵉᶠᵍʰᶦʲᵏˡᵐⁿᵒᵖᵠʳˢᵗᵘᵛʷˣʸᶻᴬᴮᶜᴰᴱᶠᴳᴴᴵᴶᴷᴸᴹᴺᴼᴾᵠᴿˢᵀᵁⱽᵂˣʸᶻ¹²³⁴⁵⁶⁷⁸⁹⁰⁻⁺⁼⁽⁾ˀᵎ',
             'smallcaps': 'ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-+=()?!'
         }
+        if text_type not in alphanum_mapper.keys():
+            text_type = 'supscript'
 
         new_msg = []
         source = alphanum_mapper.get('normal')

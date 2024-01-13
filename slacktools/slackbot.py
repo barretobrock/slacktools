@@ -76,7 +76,7 @@ class SlackBotBase(SlackTools):
 
         # Set triggers to @bot and any custom text
         trigger_formatted = '|{}'.format('|'.join(triggers)) if triggers is not None else ''
-        self.MENTION_REGEX = r'^(<@{}>{})([.\s\S ]*)'.format(self.user_id, trigger_formatted)
+        self.MENTION_REGEX = r'^(<@({})>{})([.\s\S ]*)'.format(self.user_id, trigger_formatted)
         self.main_channel = main_channel
         self.admins = admins
 
