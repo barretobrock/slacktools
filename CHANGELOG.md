@@ -15,6 +15,10 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.9] - 2024-01-14
+#### Fixed
+ - Removed invalid `block_id` from button element (this is only valid for blocks, not individual elements)
+ 
 ### [2.0.8] - 2024-01-14
 #### Added
  - Option to provide random response on command mismatch

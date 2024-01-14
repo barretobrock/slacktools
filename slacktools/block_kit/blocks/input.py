@@ -1,7 +1,4 @@
-from typing import (
-    List,
-    Union,
-)
+from typing import Union
 
 from slacktools.block_kit.base import BaseElement
 from slacktools.block_kit.elements.display.text import PlainTextElement
