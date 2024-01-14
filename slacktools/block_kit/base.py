@@ -1,3 +1,5 @@
+import random
+import string
 from typing import (
     Callable,
     Dict,
@@ -75,3 +77,11 @@ def dictify_blocks(f) -> Callable:
 
 
 BlocksType = List[Union[Dict, BaseElement]]
+
+
+def random_string(n_chars: int = 10, addl_chars: str = None) -> str:
+    """Generates a random string of n characters in length"""
+    chars = string.ascii_letters
+    if addl_chars is not None:
+        chars += addl_chars
+    return ''.join([random.choice(chars) for i in range(n_chars)])

@@ -4,11 +4,11 @@ from unittest.mock import MagicMock
 
 from slacktools.api.events.message import Message
 from slacktools.api.slash.slash import SlashCommandEvent
-from slacktools.slackbot import SlackBotBase
-from slacktools.tools import (
-    ProcessedCommandItemType,
+from slacktools.command_processing import (
+    CommandItem,
     build_commands,
 )
+from slacktools.slackbot import SlackBotBase
 
 from .common import (
     get_test_logger,
@@ -42,18 +42,28 @@ class TestSlackBotBase(unittest.TestCase):
 
     def test_build_command_output(self):
         """Tests build_command_output"""
-        cmd_dict = ProcessedCommandItemType(
+
+        mock_bot = MagicMock(name='bot')
+        mock_bot.test_method.return_value = 'hello'
+
+        cmd_item = CommandItem(
             pattern='^(ag|acro[-]?guess)',
-            tags=['random', 'tow'],
             group='random',
-            desc='Guess an acronym',
-            examples=['ag CCC'],
-            flags=['-(g|group) <group_name>'],
-            response=['ok!']
+            cmd_details={
+                'tags': ['random', 'tow'],
+                'desc': 'Guess an acronym',
+                'examples': ['ag CCC'],
+                'flags': ['-(g|group) <group_name>'],
+                'response_cmd': {
+                    'callable_name': 'test_method'
+                }
+            },
+            obj=mock_bot
         )
-        resp = self.sbb.build_command_output(cmd_dict)
-        self.assertIsInstance(resp, str)
-        self.assertIn('Optional Flags:', resp)
+
+        resp = self.sbb.build_command_blocks(cmd_item)
+        self.assertIsInstance(resp, list)
+        self.assertIn('Optional Flags:', resp[1].elements[2].text)
 
     def test_build_help_block(self):
         resp = self.sbb.build_help_block(intro='test', avi_url='url', avi_alt='this is an alt description')

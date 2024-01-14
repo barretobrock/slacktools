@@ -36,7 +36,7 @@ from slacktools.slack_session import SlackSession
 
 class SlackMethods:
 
-    def __init__(self, props: Dict, main_channel: str, use_session: bool = False):
+    def __init__(self, props: Dict, main_channel: str, is_use_session: bool = False):
         # Get team name
         self.team = props['team']
         self.main_channel = main_channel
@@ -52,7 +52,7 @@ class SlackMethods:
         self.user_id = auth_test['user_id']
 
         self.session = self.d_cookie = self.xoxc_token = None
-        if use_session:
+        if is_use_session:
             logger.debug('Param `use_session` set to True - establishing session object.')
             if all([x in props.keys() for x in ['d-cookie', 'xoxc-token']]):
                 self.d_cookie = props['d-cookie']
@@ -350,7 +350,8 @@ class SlackMethods:
                 return channel_history.messages[0]
         return None
 
-    def get_previous_msg_in_thread(self, channel: str, timestamp: str, thread_ts: str) -> Optional[Tuple[ThreadMessage, bool]]:
+    def get_previous_msg_in_thread(self, channel: str, timestamp: str,
+                                   thread_ts: str) -> Optional[Tuple[ThreadMessage, bool]]:
         """Gets the previous message from the channel
 
         Returns the ThreadMessage object for the previous item and then boolean indicating if

@@ -4,6 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from random import choice
 import re
 import traceback
 from typing import (
@@ -31,29 +32,28 @@ from slacktools.block_kit.base import (
     dictify_blocks,
 )
 from slacktools.block_kit.blocks import (
+    ActionsBlock,
     DividerBlock,
     MarkdownContextBlock,
     MarkdownSectionBlock,
-    PlainTextSectionBlock,
 )
+from slacktools.block_kit.elements.input import ButtonElement
+from slacktools.command_processing import CommandItem
 from slacktools.slack_input_parser import (
     SlackInputParser,
     block_text_converter,
 )
-from slacktools.tools import (
-    ProcessedCommandItemType,
-    SlackTools,
-)
+from slacktools.tools import SlackTools
 
 
 class SlackBotBase(SlackTools):
     """The base class for an interactive bot in Slack"""
     def __init__(self, props: Dict, triggers: List[str], main_channel: str, admins: List[str],
-                 is_post_exceptions: bool = False, debug: bool = False, use_session: bool = False):
+                 is_post_exceptions: bool = False, is_debug: bool = False, is_use_session: bool = False,
+                 is_rand_response: bool = False):
         """
         Args:
-            triggers: list of str, any specific text trigger to kick off the bot's processing of commands
-                default: None. (i.e., will only trigger on @mentions)
+
             props: dict, contains tokens & other secrets for connecting &
                     interacting with Slack
                 required keys:
@@ -64,12 +64,20 @@ class SlackBotBase(SlackTools):
                     d-cookie: str, cookie used for special processes outside
                         the realm of common API calls e.g., emoji uploads
                     xoxc-token: str, token for uploading emojis
+            triggers: list of str, any specific text trigger to kick off the bot's processing of commands
+                default: None. (i.e., will only trigger on @mentions)
             main_channel: str, the channel to send messages by default
-            debug: bool, if True, will provide additional info into exceptions
+            admins: List[str], list of admin UIDs to allow access to admin-level commands
+            is_post_exceptions: bool, if True, will post exception detail in messages
+            is_debug: bool, if True, will provide additional info into exceptions
+            is_use_session: bool, if True, will set up a session, namely for doing things like uploading emojis
+            is_rand_response: bool, if True, will do a random response when a command is not matched
         """
-        super().__init__(props=props, main_channel=main_channel, use_session=use_session)
+        super().__init__(props=props, main_channel=main_channel, is_use_session=is_use_session)
         self.is_post_exceptions = is_post_exceptions
-        self.debug = debug
+        self.is_debug = is_debug
+        self.is_rand_response = is_rand_response
+        self.rand_response_methods = []
         # Enforce lowercase triggers (regex will be indifferent to case anyway
         if triggers is not None:
             triggers = list(map(str.lower, triggers))
@@ -80,7 +88,7 @@ class SlackBotBase(SlackTools):
         self.main_channel = main_channel
         self.admins = admins
 
-        self.commands = []  # type: List[ProcessedCommandItemType]
+        self.commands = []  # type: List[CommandItem]
 
         self.triggers = [f'{self.user_id}']
         # User ids are formatted in a different way, so just
@@ -97,27 +105,35 @@ class SlackBotBase(SlackTools):
         self.message_events = []
         self.forms = {}  # type: Dict[str, ActionForm]
 
-    def update_commands(self, commands: List[ProcessedCommandItemType]):
+    def update_commands(self, commands: List[CommandItem]):
         """Updates the dictionary of commands"""
         self.commands = commands
 
     @staticmethod
-    def build_command_output(command_dict: ProcessedCommandItemType) -> str:
-        """Takes in a single command dictionary and formats it for output in a Slack message"""
+    def build_command_blocks(command_item: CommandItem) -> BlocksType:
         tab_char = ':blank:'  # this is wonky, but it works much better than \t in Slack!
-        pattern = command_dict.get('pattern')
-        # group = command_dict.get('group')
-        desc = command_dict.get('desc')
-        # Optionals
-        flags = command_dict.get('flags')       # e.g. "-t <type>"
-        examples = command_dict.get('examples')
-        if flags is not None and len(flags) > 0:
-            flag_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in flags])
-            desc += f'\n{tab_char * 1}Optional Flags:\n{tab_char}{flag_desc}'
-        if examples is not None and len(examples) > 0:
-            example_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in examples])
-            desc += f'\n{tab_char * 1}Example Usage:\n{tab_char}{example_desc}\n'
-        return f'*`{pattern}`*: {desc}\n'
+
+        content_block_items = [
+            f'Matches on: *`{command_item.pattern}`*',
+            command_item.desc,
+        ]
+
+        flags_txt = ''
+        examples_txt = ''
+        if len(command_item.flags) > 0:
+            flags_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in command_item.flags])
+            flags_txt += f'\n{tab_char}Optional Flags:\n{tab_char}{flags_desc}'
+            content_block_items.append(flags_txt)
+        if len(command_item.examples) > 0:
+            examples_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in command_item.examples])
+            examples_txt += f'\n{tab_char}Optional Flags:\n{tab_char}{examples_desc}'
+            content_block_items.append(examples_txt)
+
+        return [
+            MarkdownSectionBlock(f'*{command_item.title}*'),
+            MarkdownContextBlock(content_block_items),
+            DividerBlock()
+        ]
 
     @dictify_blocks
     def build_help_block(self, intro: str, avi_url: str, avi_alt: str) -> BlocksType:
@@ -132,33 +148,33 @@ class SlackBotBase(SlackTools):
         """
         logger.debug('Building help block')
         # Build out some explanation of the main commands
-        main_cmd_txt = ''
-        for cmd_dict in self.commands:
-            if 'main' not in cmd_dict.get('tags', []):
+        main_cmd_blocks = []
+        for cmd_item in self.commands:
+            if 'main' not in cmd_item.tags:
                 continue
-            main_cmd_txt += self.build_command_output(cmd_dict)
+            main_cmd_blocks += self.build_command_blocks(cmd_item)
 
         # Then build out a list of the groups
-        groups = list(set([c.get('group') for c in self.commands]))
-        group_txt = ''.join(sorted([f' *`{g}`* ' for g in groups]))
+        groups = list(set([c.group for c in self.commands]))
+        group_btns = [ButtonElement(x, action_id=f'shelpg-{x}') for x in groups]
         # Then build out a list of the tags
         tags = []
         for cmd in self.commands:
-            tags_raw = cmd.get('tags')
+            tags_raw = cmd.tags
             if tags_raw is not None:
                 tags += tags_raw
         tags = list(set(tags))
-        tags_txt = ''.join(sorted([f' *`{g}`* ' for g in tags]))
+        tag_btns = [ButtonElement(x, action_id=f'shelpt-{x}') for x in sorted(tags)]
 
         blocks = [
-            PlainTextSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
-            DividerBlock(),
-            MarkdownSectionBlock(main_cmd_txt),
-            DividerBlock(),
-            MarkdownSectionBlock([
-                'Search more commands: `shelp -g` or `shelp -t` and apply:',
-                f'Groups: {group_txt}\nTags: {tags_txt}'
-            ]),
+            MarkdownSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
+            DividerBlock()
+            ] + main_cmd_blocks + [
+            MarkdownContextBlock('*Command groups:*'),
+            ActionsBlock(group_btns),
+            MarkdownContextBlock('*Command tags:*'),
+            ActionsBlock(tag_btns),
+            MarkdownContextBlock('Additionally, just tell Wizzy `shelp -t {tag}` or `shelp -g {group}` any time!'),
         ]
 
         return blocks
@@ -173,24 +189,28 @@ class SlackBotBase(SlackTools):
         if group is not None:
             logger.debug(f'Filtering on group: {group}')
             filtered_by = f'group: {group}'
-            cmd_list = [x for x in self.commands if x.get('group', '') == group]
+            cmd_list = [x for x in self.commands if x.group == group]
         elif tag is not None:
             logger.debug(f'Filtering on tag: {tag}')
             filtered_by = f'tag: {tag}'
-            cmd_list = [x for x in self.commands if tag in x.get('tags', [])]
+            cmd_list = [x for x in self.commands if tag in x.tags]
         else:
             logger.debug('Unable to filter on group or tag. Responding to user.')
             return 'Unable to filter on commands without a tag or group. Please either include ' \
                    '`-t <tag-name>` or `-g <group-name>`'
 
         logger.debug(f'Found {len(cmd_list)} cmds matching {filtered_by}')
-        result = ''
-        for cmd_dict in cmd_list:
-            result += self.build_command_output(cmd_dict)
+        result_blocks = []
+        for cmd_item in cmd_list:
+            result_blocks += self.build_command_blocks(cmd_item)
 
         return [
-            MarkdownContextBlock(f'*`{len(cmd_list)}/{len(self.commands)}`* commands filtered by {filtered_by}'),
-            MarkdownSectionBlock(result)
+            MarkdownContextBlock(f'*`{len(cmd_list)}/{len(self.commands)}`* commands filtered by {filtered_by}')
+        ] + result_blocks + [
+            ActionsBlock([
+                ButtonElement('Back to Menu', action_id='help', style='primary'),
+                ButtonElement('Close', action_id='close', style='danger')
+            ])
         ]
 
     def parse_direct_mention(self, message: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -237,7 +257,7 @@ class SlackBotBase(SlackTools):
                 exception_msg = '{}: {}'.format(e.__class__.__name__, e)
                 logger.error(f'Exception occurred: {exception_msg}', e)
                 if not isinstance(e, RuntimeError) and self.is_post_exceptions:
-                    if self.debug:
+                    if self.is_debug:
                         blocks = [
                             MarkdownContextBlock(f"Exception occurred: \n*`{exception_msg}`*").asdict(),
                             DividerBlock().asdict(),
@@ -293,21 +313,20 @@ class SlackBotBase(SlackTools):
                 return None
 
         is_matched = False
-        for resp_dict in self.commands:
-            regex = resp_dict.get('pattern')
-            match = re.match(regex, obj.cleaned_message)
+        for cmd_item in self.commands:
+            match = re.match(cmd_item.pattern, obj.cleaned_message)
             if match is not None:
-                logger.debug(f'Matched on pattern: {regex}')
-                group = resp_dict.get('group', 'default')
+                logger.debug(f'Matched on pattern: {cmd_item.pattern}')
+                group = cmd_item.group
                 if group == 'admin':
                     if uid not in self.admins:
                         logger.info(f'Blocked user {uid} from using command.')
                         response = ':ah-ah-ah:' * np.random.randint(1, 50)
                         break
                 # We've matched on a command
-                resp = resp_dict['response']
+                resp = cmd_item.response
                 # Add the regex pattern into the event dict
-                obj.take_match_pattern(regex)
+                obj.take_match_pattern(cmd_item.pattern)
                 if isinstance(resp, list):
                     if len(resp) == 0:
                         # Empty response placeholder... Maybe we'll use this for certain commands.
@@ -342,9 +361,22 @@ class SlackBotBase(SlackTools):
                 break
 
         if obj.cleaned_message != '' and not is_matched:
-            response = f"I didn\'t understand this: *`{obj.cleaned_message}`*\n" \
-                       f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
-                       f"to get a list of my commands."
+            if self.is_rand_response and len(self.rand_response_methods) > 0:
+                method = choice(self.rand_response_methods)
+                if isinstance(method, list):
+                    callable_method = method.pop(0)
+                    # Append the original message
+                    method_args = method
+                    method_args.append(obj.cleaned_message)
+                else:
+                    # Only method supplied
+                    callable_method = method
+                    method_args = [obj.cleaned_message]
+                response = callable_method(*method_args)
+            else:
+                response = f"I didn\'t understand this: *`{obj.cleaned_message}`*\n" \
+                           f"Use {' or '.join([f'`{x} help`' for x in self.triggers_txt])} " \
+                           f"to get a list of my commands."
         if response is None:
             return
 

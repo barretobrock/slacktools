@@ -1,5 +1,8 @@
 
-from slacktools.block_kit.base import BaseElement
+from slacktools.block_kit.base import (
+    BaseElement,
+    random_string,
+)
 from slacktools.block_kit.elements.display.text import PlainTextElement
 
 
@@ -26,15 +29,20 @@ class ButtonElement(BaseElement):
     type: str = 'button'
     text: PlainTextElement
     action_id: str = 'button_action'
+    block_id: str
     url: str
     value: str
     style: str
     confirm: ConfirmElement
 
     def __init__(self, text: str, action_id: str = action_id, url: str = None, value: str = None, style: str = None,
-                 confirm: ConfirmElement = None):
+                 confirm: ConfirmElement = None, block_id: str = None):
         self.text = PlainTextElement(text=text)
         self.action_id = action_id
+        if block_id is None:
+            self.block_id = random_string()
+        else:
+            self.block_id = f'{random_string()}-{block_id}'
         if url is not None:
             self.url = url
         if value is not None:

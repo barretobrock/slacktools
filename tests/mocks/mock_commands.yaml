@@ -6,7 +6,7 @@
 #       # Response should be one of these:
 #       response_cmd:
 #           A dynamic command that's mapped to the dict on instantiation via attribute lookup
-#           callable: <name_of_callable>
+#           callable_name: <name_of_callable_name>
 #           args:
 #               # Note: these arg names should match what's coming in from an event
 #               #   (e.g., user, channel, message)
@@ -21,30 +21,34 @@ commands:
             tags:
                 - support
                 - main
-            desc: Description of the main commands I respond to, along with other groups and tags to search my other commands
+            title: something
+            desc: description of the main commands I respond to, along with other groups and tags to search my other commands
             response_cmd:
-                callable: generate_intro
+                callable_name: generate_intro
         ^(search\s?help|shelp):
             tags:
                 - support
                 - main
+            title: something
             desc: Search the command descriptions by tag or group
             examples:
                 - search help -t support
                 - search help -g okr
                 - shelp -g okr
             response_cmd:
-                callable: search_help_block
+                callable_name: search_help_block
                 args:
                     - message
         ^about:
+            title: something
             tags:
                 - debug
                 - main
             desc: Bootup time of Viktor's current instance, his current version and last update date
             response_cmd:
-                callable: get_bootup_msg
+                callable_name: get_bootup_msg
         ^m(ain\s?menu|m):
+            title: something
             tags:
                 - ui
                 - settings
@@ -55,7 +59,7 @@ commands:
                 - main menu
                 - mainmenu
             response_cmd:
-                callable: prebuild_main_menu
+                callable_name: prebuild_main_menu
                 args:
                     - user
                     - channel
@@ -65,7 +69,7 @@ commands:
                 - ui
             desc: Add emojis in 2 or fewer steps!
             response_cmd:
-                callable: add_emoji_form_p1
+                callable_name: add_emoji_form_p1
                 args:
                     - user
                     - channel
@@ -81,14 +85,14 @@ commands:
                 - debug
             desc: Display current server time
             response_cmd:
-                callable: get_time
+                callable_name: get_time
 
         ^emoji[s]? like:
             tags:
                 - emoji
             desc: Get emojis matching the regex pattern
             response_cmd:
-                callable: get_emojis_like
+                callable_name: get_emojis_like
                 args:
                     - match_pattern
                     - message
@@ -97,7 +101,7 @@ commands:
                 - emoji
             desc: Turn your words into emoji
             response_cmd:
-                callable: word_emoji
+                callable_name: word_emoji
                 args:
                     - message
                     - match_pattern
@@ -107,7 +111,7 @@ commands:
                 - ui
             desc: Play a button game. win (or lose..........)
             response_cmd:
-                callable: button_game
+                callable_name: button_game
                 args:
                     - message
         ^wfh\s?(time|epoch):
@@ -116,41 +120,41 @@ commands:
                 - main
             desc: Prints the current WFH epoch time
             response_cmd:
-                callable: wfh_epoch
+                callable_name: wfh_epoch
     group-okr:
         ^onbo[a]?r[d]?ing$:
             tags:
                 - okr
             desc: Prints out all the material needed to get a new OKR employee up to speed!
             response_cmd:
-                callable: onboarding_docs
+                callable_name: onboarding_docs
         ^(gsheet[s]?|show) link$:
             tags:
                 - okr
             desc: Shows link to Viktor\'s GSheet (acronyms, insults, etc..)
             response_cmd:
-                callable: show_gsheets_link
+                callable_name: show_gsheets_link
         ^(update\s?level|level\s?up):
             tags:
                 - okr
                 - user
             desc: Accesses an employees LevelUp registry and increments their level! No roundtables needed!
             response_cmd:
-                callable: build_update_user_level_form
+                callable_name: build_update_user_level_form
         ^(gib)?\s?ltits:
             tags:
                 - okr
                 - user
             desc: Distribute or withdraw LTITs from an employee's account
             response_cmd:
-                callable: build_update_user_ltits_form_p1
+                callable_name: build_update_user_ltits_form_p1
         ^show (my )?perk[s]?:
             tags:
                 - okr
                 - user
             desc: Shows the perks an employee has access to at their current level
             response_cmd:
-                callable: show_my_perks
+                callable_name: show_my_perks
                 args:
                     - user
         ^show all perks:
@@ -159,7 +163,7 @@ commands:
                 - user
             desc: Shows all perks currently available at all levels at OKR
             response_cmd:
-                callable: show_all_perks
+                callable_name: show_all_perks
         ^show (roles|doo[td]ies)$:
             tags:
                 - okr
@@ -167,7 +171,7 @@ commands:
                 - user
             desc: Shows current roles of all the wonderful workers of OKR
             response_cmd:
-                callable: build_role_txt
+                callable_name: build_role_txt
                 args:
                     - channel
         ^update (role|doo[td]ies):
@@ -177,7 +181,7 @@ commands:
                 - user
             desc: Updates OKR roles of user (or other user). Useful during a lightning reorg.
             response_cmd:
-                callable: new_role_form_p1
+                callable_name: new_role_form_p1
                 args:
                     - user
                     - channel
@@ -188,7 +192,7 @@ commands:
                 - user
             desc: Shows your current role as of the last reorg.
             response_cmd:
-                callable: build_role_txt
+                callable_name: build_role_txt
                 args:
                     - channel
                     - user
@@ -198,7 +202,7 @@ commands:
                 - linguistics
             desc: Offers a translation of an Estonian word into an English word or vice-versa
             response_cmd:
-                callable: prep_message_for_translation
+                callable_name: prep_message_for_translation
                 args:
                     - message
                     - match_pattern
@@ -207,7 +211,7 @@ commands:
                 - linguistics
             desc: N2ided Eesti kirjakeele seletuss6naraamatust
             response_cmd:
-                callable: prep_message_for_examples
+                callable_name: prep_message_for_examples
                 args:
                     - message
                     - match_pattern
@@ -216,7 +220,7 @@ commands:
                 - linguistics
             desc: Determines the lemma of a word (Currently Estonian only)
             response_cmd:
-                callable: prep_message_for_root
+                callable_name: prep_message_for_root
                 args:
                     - message
                     - match_pattern
@@ -225,7 +229,7 @@ commands:
                 - linguistics
             desc: Gets the etymology of a given word
             response_cmd:
-                callable: get_etymology
+                callable_name: get_etymology
                 args:
                     - message
                     - match_pattern
@@ -235,14 +239,14 @@ commands:
                 - random
             desc: Try to gain access to something - whether that be the power grid to your failing theme park on an island off the coast of Costa Rica or something else idk man...
             response_cmd:
-                callable: access_something
+                callable_name: access_something
         ^(quote|ransom letter) me:
             tags:
                 - random
                 - emoji
             desc: Turns your quote into a... ransom letter? idk.
             response_cmd:
-                callable: quote_me
+                callable_name: quote_me
                 args:
                     - message
                     - match_pattern
@@ -251,19 +255,19 @@ commands:
                 - random
             desc: Responds appropriately to a simple greeting
             response_cmd:
-                callable: sh_response
+                callable_name: sh_response
         jackhandey:
             tags:
                 - random
             desc: Gives you a nice bit of wisdom from the sage Jack Handey
             response_cmd:
-                callable: jackhandey
+                callable_name: jackhandey
         .*inspir.*:
             tags:
                 - random
             desc: Uploads an inspirational picture
             response_cmd:
-                callable: inspirational
+                callable_name: inspirational
                 args:
                     - channel
         .*tihi.*:
@@ -271,13 +275,13 @@ commands:
                 - random
             desc: Giggles.
             response_cmd:
-                callable: giggle
+                callable_name: giggle
         ^shurg:
             tags:
                 - random
             desc: ¯\_(ツ)_/¯
             response_cmd:
-                callable: shurg
+                callable_name: shurg
                 args:
                     - message
         ^(randcap|mock):
@@ -285,7 +289,7 @@ commands:
                 - random
             desc: whaT dO yOu thiNK iT Does
             response_cmd:
-                callable: randcap
+                callable_name: randcap
                 args:
                     - message
         ^uwu:
@@ -293,7 +297,7 @@ commands:
                 - random
             desc: Makes text pwettiew and easiew to uwundewstand (defaults to highest uwu level)
             response_cmd:
-                callable: uwu
+                callable_name: uwu
                 args:
                     - raw_message
         (thanks|[no,\s]*\s(t[h]?ank\s?(you|u))):
@@ -301,7 +305,7 @@ commands:
                 - random
             desc: Compete with Viktor over who's the more polite one
             response_cmd:
-                callable: overly_polite
+                callable_name: overly_polite
                 args:
                     - message
         ^sauce$:
@@ -319,13 +323,13 @@ commands:
                 - random
             desc: Exactly one dadjoke.
             response_cmd:
-                callable: dadjoke
+                callable_name: dadjoke
         ^(diddle my brain|affirmation):
             tags:
                 - random
             desc: A positive brain-diddling
             response_cmd:
-                callable: affirmation
+                callable_name: affirmation
         ^(ag|acro[-]?guess):
             tags:
                 - random
@@ -335,7 +339,7 @@ commands:
                 - -(g|group) <acronym-group>
                 - -n <n-times>
             response_cmd:
-                callable: guess_acronym
+                callable_name: guess_acronym
                 args:
                     - message
         ^ins[ul]{2}t:
@@ -345,7 +349,7 @@ commands:
             flags:
                 - -(g|group) <insult-group>
             response_cmd:
-                callable: insult
+                callable_name: insult
                 args:
                     - message
         ^phrases?:
@@ -356,7 +360,7 @@ commands:
                 - -(g|group) <phrase-group>
                 - -n <n-times>
             response_cmd:
-                callable: phrase_generator
+                callable_name: phrase_generator
                 args:
                     - message
         ^compliment:
@@ -366,7 +370,7 @@ commands:
             flags:
                 - -(g|group) <compliment-group>
             response_cmd:
-                callable: compliment
+                callable_name: compliment
                 args:
                     - raw_message
                     - user
@@ -375,21 +379,21 @@ commands:
                 - random
             desc: Generates a fact!
             response_cmd:
-                callable: facts
+                callable_name: facts
         ^conspiracy\s?facts?:
             tags:
                 - random
                 - tow
             desc: Generates a conspiracy fact!
             response_cmd:
-                callable: conspiracy_fact
+                callable_name: conspiracy_fact
         ^add conspiracyfacts?:
             tags:
                 - random
                 - tow
             desc: Adds a conspiracy fact!
             response_cmd:
-                callable: add_ifact_form
+                callable_name: add_ifact_form
                 args:
                     - user
                     - channel

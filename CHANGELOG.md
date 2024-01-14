@@ -15,6 +15,14 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.8] - 2024-01-14
+#### Added
+ - Option to provide random response on command mismatch
+#### Changed
+ - Command parsing is now handled through dedicated objects 
+ - Help and help search redesigned to use blocks
+ - Minor class variable refactoring to better conform to duck typing
+ 
 ### [2.0.7] - 2023-12-25
 #### Added
  - [GH-13](../../issues/13) - Add tiny text generation support
@@ -28,11 +36,6 @@ __BEGIN-CHANGELOG__
 #### Added
  - Allow `is_in_bot_timeout` check on incoming messages, commands and actions
  - Channel event classes
-#### Changed
-#### Deprecated
-#### Removed
-#### Fixed
-#### Security
  
 ### [2.0.5] - 2023-12-22
 #### Added
