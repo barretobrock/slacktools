@@ -15,6 +15,12 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.10] - 2024-01-14
+#### Added
+ - Command count tinytexted into buttons
+#### Changed
+ - Minor aesthetic improvements to help/shelp structure
+ 
 ### [2.0.9] - 2024-01-14
 #### Fixed
  - Removed invalid `block_id` from button element (this is only valid for blocks, not individual elements)

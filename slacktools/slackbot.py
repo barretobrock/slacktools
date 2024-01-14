@@ -115,7 +115,6 @@ class SlackBotBase(SlackTools):
 
         content_block_items = [
             f'Matches on: *`{command_item.pattern}`*',
-            command_item.desc,
         ]
 
         flags_txt = ''
@@ -126,11 +125,14 @@ class SlackBotBase(SlackTools):
             content_block_items.append(flags_txt)
         if len(command_item.examples) > 0:
             examples_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in command_item.examples])
-            examples_txt += f'\n{tab_char}Optional Flags:\n{tab_char}{examples_desc}'
+            examples_txt += f'\n{tab_char}Examples:\n{tab_char}{examples_desc}'
             content_block_items.append(examples_txt)
 
         return [
-            MarkdownSectionBlock(f'*{command_item.title}*'),
+            MarkdownSectionBlock([
+                f'*{command_item.title}*',
+                f'_{command_item.desc}_'
+            ]),
             MarkdownContextBlock(content_block_items),
             DividerBlock()
         ]
@@ -155,24 +157,30 @@ class SlackBotBase(SlackTools):
             main_cmd_blocks += self.build_command_blocks(cmd_item)
 
         # Then build out a list of the groups
-        groups = list(set([c.group for c in self.commands]))
-        group_btns = [ButtonElement(x, action_id=f'shelpg-{x}') for x in groups]
+        groups = [c.group for c in self.commands]
+        unique_groups = sorted(list(set(groups)))
+        group_btns = [
+            ButtonElement(f'{x} {self.tiny_text_gen(f"{groups.count(x)}")}', action_id=f'shelpg-{x}')
+            for x in unique_groups
+        ]
         # Then build out a list of the tags
         tags = []
         for cmd in self.commands:
-            tags_raw = cmd.tags
-            if tags_raw is not None:
-                tags += tags_raw
-        tags = list(set(tags))
-        tag_btns = [ButtonElement(x, action_id=f'shelpt-{x}') for x in sorted(tags)]
+            if cmd.tags is not None:
+                tags += cmd.tags
+        unique_tags = sorted(list(set(tags)))
+        tag_btns = [
+            ButtonElement(f'{x} {self.tiny_text_gen(f"{tags.count(x)}")}', action_id=f'shelpt-{x}')
+            for x in unique_tags
+        ]
 
         blocks = [
             MarkdownSectionBlock(intro, image_url=avi_url, image_alt_txt=avi_alt),
             DividerBlock()
             ] + main_cmd_blocks + [
-            MarkdownContextBlock('*Command groups:*'),
+            MarkdownContextBlock(f'*Command groups {self.tiny_text_gen("(total commands)")}:*'),
             ActionsBlock(group_btns),
-            MarkdownContextBlock('*Command tags:*'),
+            MarkdownContextBlock(f'*Command tags {self.tiny_text_gen("(total commands)")}:*'),
             ActionsBlock(tag_btns),
             MarkdownContextBlock('Additionally, just tell Wizzy `shelp -t {tag}` or `shelp -g {group}` any time!'),
         ]
