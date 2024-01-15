@@ -15,6 +15,12 @@ _Note: 'Unreleased' section below is used for untagged changes that will be issu
 #### Security
 __BEGIN-CHANGELOG__
  
+### [2.0.11] - 2024-01-15
+#### Added
+ - Support for text modification on application responses
+#### Fixed
+ - Resolve failure when help section text is rendered without flags/examples
+ 
 ### [2.0.10] - 2024-01-14
 #### Added
  - Command count tinytexted into buttons

@@ -119,11 +119,11 @@ class SlackBotBase(SlackTools):
 
         flags_txt = ''
         examples_txt = ''
-        if len(command_item.flags) > 0:
+        if command_item.flags is not None and len(command_item.flags) > 0:
             flags_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in command_item.flags])
             flags_txt += f'\n{tab_char}Optional Flags:\n{tab_char}{flags_desc}'
             content_block_items.append(flags_txt)
-        if len(command_item.examples) > 0:
+        if command_item.examples is not None and len(command_item.examples) > 0:
             examples_desc = f'\n{tab_char}'.join([f' -> *`{x}`*' for x in command_item.examples])
             examples_txt += f'\n{tab_char}Examples:\n{tab_char}{examples_desc}'
             content_block_items.append(examples_txt)
@@ -400,6 +400,13 @@ class SlackBotBase(SlackTools):
                 # Pass string without formatting
                 pass
             params.update({'message': response})
+        elif isinstance(response, dict):
+            # This is generally for just rewriting application messages
+            for p in ['attachments', 'type', 'subtype', 'message']:
+                if p in response.keys():
+                    params[p] = response[p]
+            if not params.get('message'):
+                params['message'] = ''
         elif isinstance(response, list):
             # Likely blocks response
             params.update({'message': '', 'blocks': response})
